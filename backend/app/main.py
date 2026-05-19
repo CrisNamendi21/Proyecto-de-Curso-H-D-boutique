@@ -22,6 +22,10 @@ from app.routers.cliente_router import router as cliente_router
 from app.routers.empleado_router import router as empleado_router
 from app.routers.proveedor_router import router as proveedor_router
 
+#Modulo 3
+from app.routers.producto_router import router as producto_router
+from app.routers.producto_proveedor_router import router as producto_proveedor_router
+
 app = FastAPI(
     title="H&D Boutique API",
     description="Backend del sistema web interno para H&D Boutique",
@@ -44,6 +48,10 @@ app.include_router(direccion_proveedor_router)
 app.include_router(cliente_router)
 app.include_router(empleado_router)
 app.include_router(proveedor_router)
+
+#modulo 3
+app.include_router(producto_router)
+app.include_router(producto_proveedor_router)
 
 
 @app.get("/")
