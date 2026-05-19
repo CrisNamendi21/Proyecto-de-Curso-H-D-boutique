@@ -6,12 +6,21 @@ from app.config import settings
 from app.database import get_db
 
 #IMPORTACION de los routers
+
+#Modulo 1
 from app.routers.categoria_router import router as categoria_router
 from app.routers.departamento_router import router as departamento_router
 from app.routers.talla_router import router as talla_router
 from app.routers.tipo_pago_router import router as tipo_pago_router
 from app.routers.municipio_router import router as municipio_router
 
+#Modulo 2
+from app.routers.direccion_cliente_router import router as direccion_cliente_router
+from app.routers.direccion_empleado_router import router as direccion_empleado_router
+from app.routers.direccion_proveedor_router import router as direccion_proveedor_router
+from app.routers.cliente_router import router as cliente_router
+from app.routers.empleado_router import router as empleado_router
+from app.routers.proveedor_router import router as proveedor_router
 
 app = FastAPI(
     title="H&D Boutique API",
@@ -21,12 +30,20 @@ app = FastAPI(
 
 
 #Registros de los routers
+#modulo 1
 app.include_router(categoria_router)
 app.include_router(departamento_router)
 app.include_router(talla_router)
 app.include_router(tipo_pago_router)
 app.include_router(municipio_router)
 
+#modulo 2
+app.include_router(direccion_cliente_router)
+app.include_router(direccion_empleado_router)
+app.include_router(direccion_proveedor_router)
+app.include_router(cliente_router)
+app.include_router(empleado_router)
+app.include_router(proveedor_router)
 
 
 @app.get("/")
