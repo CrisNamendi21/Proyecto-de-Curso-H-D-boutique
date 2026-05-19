@@ -1,0 +1,172 @@
+/* =========================
+   PALETA GENERAL
+========================= */
+:root {
+  --blanco-hueso: #f8f6f0;
+
+  --rosa-claro: #ffd6e7;
+  --rosa-pastel: #f8bbd7;
+  --rosa-fuerte: #eb5b93;
+  --rosa-texto: #5a2d45;
+
+  --lila-claro: #e6d6fa;
+  --morado-pastel: #cdb4f6;
+  --morado-texto: #4b2f73;
+  --morado-oscuro: #3b235f;
+
+  --texto-principal: #2b2328;
+  --texto-suave: #6f5c66;
+}
+
+/* =========================
+   LOGIN
+========================= */
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f6f0, #fff7fb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: 430px;
+  background: #ffffff;
+  border: 1px solid var(--rosa-pastel);
+  border-radius: 24px;
+  padding: 38px;
+  text-align: center;
+  box-shadow: 0 20px 45px rgba(248, 187, 215, 0.28);
+}
+
+.login-card h1 {
+  color: var(--rosa-fuerte);
+  font-size: 36px;
+  margin: 0 0 10px;
+}
+
+.login-card p {
+  color: var(--texto-suave);
+  font-size: 14px;
+  margin: 0 0 28px;
+}
+
+.login-card h2 {
+  color: var(--texto-principal);
+  font-size: 23px;
+  margin-bottom: 22px;
+}
+
+.login-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-btn {
+  border: none;
+  border-radius: 16px;
+  padding: 15px 18px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+/* Botón Dueña */
+.login-btn.duena {
+  background: var(--rosa-fuerte);
+  color: white;
+  border: 1px solid var(--rosa-fuerte);
+}
+
+.login-btn.duena:hover {
+  background: #d94882;
+}
+
+/* Botón Colaborador */
+.login-btn.colaborador {
+  background: var(--lila-claro);
+  color: var(--morado-texto);
+  border: 1px solid var(--morado-pastel);
+}
+
+.login-btn.colaborador:hover {
+  background: var(--morado-pastel);
+  color: var(--morado-oscuro);
+}
+
+/* =========================
+   ETIQUETA DE USUARIO
+========================= */
+.user-label {
+  font-weight: 800;
+  color: var(--rosa-texto);
+  border: 1px solid var(--rosa-pastel);
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: #fffafb;
+}
+
+/* =========================
+   TEMA COLABORADOR
+   Blanco + lila + morado
+========================= */
+.colaborador-theme {
+  background: var(--blanco-hueso);
+}
+
+.colaborador-sidebar {
+  border-color: var(--morado-pastel);
+}
+
+.colaborador-theme .brand h1 {
+  color: var(--morado-texto);
+}
+
+.colaborador-theme .brand p {
+  color: #6b5790;
+}
+
+.colaborador-theme .menu-item.active,
+.colaborador-theme .menu-item:hover {
+  background: var(--lila-claro);
+  color: var(--morado-texto);
+}
+
+.colaborador-topbar {
+  border-color: var(--morado-pastel);
+}
+
+.colaborador-theme .user-label {
+  color: var(--morado-texto);
+  border-color: var(--morado-pastel);
+  background: #faf7ff;
+}
+
+.colaborador-card,
+.colaborador-panel {
+  border-color: var(--morado-pastel);
+}
+
+.colaborador-card h3,
+.colaborador-theme .page-title,
+.colaborador-panel h3 {
+  color: var(--morado-texto);
+}
+
+.colaborador-theme .card-line {
+  background: var(--lila-claro);
+}
+
+.colaborador-bar {
+  border-color: var(--morado-pastel);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--lila-claro),
+    var(--lila-claro) 4px,
+    var(--morado-pastel) 4px,
+    var(--morado-pastel) 7px
+  );
+}
