@@ -1,8 +1,57 @@
 import { useState } from "react";
 import "./DashboardDuena.css";
 
+import Productos from "../Productos/Productos";
+
 function DashboardDuena({ setRol }) {
+  const [vistaActual, setVistaActual] = useState("dashboard");
   const [mostrarModalVentaFlash, setMostrarModalVentaFlash] = useState(false);
+
+  const [clienteVentaFlash, setClienteVentaFlash] = useState("");
+  const [fechaVentaFlash, setFechaVentaFlash] = useState("");
+
+  const obtenerFechaActual = () => {
+    const hoy = new Date();
+    const diferenciaZona = hoy.getTimezoneOffset() * 60000;
+    const fechaLocal = new Date(hoy.getTime() - diferenciaZona);
+    return fechaLocal.toISOString().split("T")[0];
+  };
+
+  const manejarClienteVentaFlash = (e) => {
+    const valor = e.target.value;
+    const soloLetras = valor.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "");
+    setClienteVentaFlash(soloLetras);
+  };
+
+  const cerrarModalVentaFlash = () => {
+    setMostrarModalVentaFlash(false);
+    setClienteVentaFlash("");
+    setFechaVentaFlash("");
+  };
+
+  const guardarVentaFlash = (e) => {
+    e.preventDefault();
+
+    const fechaActual = obtenerFechaActual();
+
+    if (clienteVentaFlash.trim() === "") {
+      alert("El nombre del cliente es obligatorio y solo debe contener letras.");
+      return;
+    }
+
+    if (fechaVentaFlash === "") {
+      alert("Debes seleccionar una fecha.");
+      return;
+    }
+
+    if (fechaVentaFlash < fechaActual) {
+      alert("No puedes seleccionar una fecha anterior a la fecha actual.");
+      return;
+    }
+
+    alert("Venta flash guardada correctamente.");
+    cerrarModalVentaFlash();
+  };
 
   return (
     <>
@@ -14,15 +63,86 @@ function DashboardDuena({ setRol }) {
           </div>
 
           <nav className="menu">
-            <button className="menu-item active">Inicio / Dashboard</button>
-            <button className="menu-item">Nueva venta</button>
-            <button className="menu-item">Ventas</button>
-            <button className="menu-item">Recibos</button>
-            <button className="menu-item">Productos / Inventario</button>
-            <button className="menu-item">Compras</button>
-            <button className="menu-item">Proveedores</button>
-            <button className="menu-item">Clientes</button>
-            <button className="menu-item">Empleados</button>
+            <button
+              className={
+                vistaActual === "dashboard" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("dashboard")}
+            >
+              Inicio / Dashboard
+            </button>
+
+            <button
+              className={
+                vistaActual === "nuevaVenta" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("nuevaVenta")}
+            >
+              Nueva venta
+            </button>
+
+            <button
+              className={
+                vistaActual === "ventas" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("ventas")}
+            >
+              Ventas
+            </button>
+
+            <button
+              className={
+                vistaActual === "recibos" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("recibos")}
+            >
+              Recibos
+            </button>
+
+            <button
+              className={
+                vistaActual === "productos" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("productos")}
+            >
+              Productos / Inventario
+            </button>
+
+            <button
+              className={
+                vistaActual === "compras" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("compras")}
+            >
+              Compras
+            </button>
+
+            <button
+              className={
+                vistaActual === "proveedores" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("proveedores")}
+            >
+              Proveedores
+            </button>
+
+            <button
+              className={
+                vistaActual === "clientes" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("clientes")}
+            >
+              Clientes
+            </button>
+
+            <button
+              className={
+                vistaActual === "empleados" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("empleados")}
+            >
+              Empleados
+            </button>
           </nav>
 
           <button className="logout-btn" onClick={() => setRol(null)}>
@@ -40,160 +160,238 @@ function DashboardDuena({ setRol }) {
           </header>
 
           <section className="dashboard-content">
-            <div className="dashboard-header">
-              <h2 className="page-title">Inicio / Dashboard</h2>
+            {vistaActual === "dashboard" && (
+              <>
+                <div className="dashboard-header">
+                  <h2 className="page-title">Inicio / Dashboard</h2>
 
-              <button
-                className="quick-top-btn"
-                onClick={() => setMostrarModalVentaFlash(true)}
-              >
-                + VENTA FLASH
-              </button>
-            </div>
-
-            <div className="cards-grid">
-              <div className="dashboard-card">
-                <h3>Ventas del día</h3>
-                <div className="card-main-value">$ 3,250.00</div>
-                <p>5 ventas</p>
-                <div className="card-line"></div>
-              </div>
-
-              <div className="dashboard-card">
-                <h3>Ventas del mes</h3>
-                <div className="card-main-value">$ 42,850.00</div>
-                <p>86 ventas</p>
-                <div className="card-line"></div>
-              </div>
-
-              <div className="dashboard-card">
-                <h3>Stock bajo</h3>
-                <div className="card-main-value">7</div>
-                <p>Ver productos</p>
-                <div className="card-line"></div>
-              </div>
-
-              <div className="dashboard-card">
-                <h3>Productos vendidos</h3>
-                <div className="card-main-value">128</div>
-                <p>Este mes</p>
-                <div className="card-line"></div>
-              </div>
-            </div>
-
-            <div className="dashboard-row">
-              <div className="panel large-panel">
-                <h3>Resumen de ventas</h3>
-
-                <div className="chart-legend">
-                  <span>• Ventas</span>
-                  <span>• Venta semanal</span>
+                  <button
+                    className="quick-top-btn"
+                    onClick={() => setMostrarModalVentaFlash(true)}
+                  >
+                    + VENTA FLASH
+                  </button>
                 </div>
 
-                <div className="fake-chart">
-                  <div className="chart-bars">
-                    <div className="bar" style={{ height: "58px" }}></div>
-                    <div className="bar" style={{ height: "98px" }}></div>
-                    <div className="bar" style={{ height: "83px" }}></div>
-                    <div className="bar" style={{ height: "128px" }}></div>
-                    <div className="bar" style={{ height: "174px" }}></div>
-                    <div className="bar" style={{ height: "165px" }}></div>
+                <div className="cards-grid">
+                  <div className="dashboard-card">
+                    <h3>Ventas del día</h3>
+                    <div className="card-main-value">$ 3,250.00</div>
+                    <p>5 ventas</p>
+                    <div className="card-line"></div>
                   </div>
 
-                  <div className="chart-labels">
-                    <span>Lun</span>
-                    <span>Mar</span>
-                    <span>Mié</span>
-                    <span>Jue</span>
-                    <span>Vie</span>
-                    <span>Sáb</span>
+                  <div className="dashboard-card">
+                    <h3>Ventas del mes</h3>
+                    <div className="card-main-value">$ 42,850.00</div>
+                    <p>86 ventas</p>
+                    <div className="card-line"></div>
+                  </div>
+
+                  <div className="dashboard-card">
+                    <h3>Stock bajo</h3>
+                    <div className="card-main-value">7</div>
+                    <p>Ver productos</p>
+                    <div className="card-line"></div>
+                  </div>
+
+                  <div className="dashboard-card">
+                    <h3>Productos vendidos</h3>
+                    <div className="card-main-value">128</div>
+                    <p>Este mes</p>
+                    <div className="card-line"></div>
                   </div>
                 </div>
+
+                <div className="dashboard-row">
+                  <div className="panel large-panel">
+                    <h3>Resumen de ventas</h3>
+
+                    <div className="chart-legend">
+                      <span>Ventas semanales</span>
+                    </div>
+
+                    <div className="fake-chart">
+                      <div className="chart-area">
+                        <div className="chart-column">
+                          <div className="bar" style={{ height: "72px" }}></div>
+                          <span>Lun</span>
+                        </div>
+
+                        <div className="chart-column">
+                          <div className="bar" style={{ height: "120px" }}></div>
+                          <span>Mar</span>
+                        </div>
+
+                        <div className="chart-column">
+                          <div className="bar" style={{ height: "98px" }}></div>
+                          <span>Mié</span>
+                        </div>
+
+                        <div className="chart-column">
+                          <div className="bar" style={{ height: "152px" }}></div>
+                          <span>Jue</span>
+                        </div>
+
+                        <div className="chart-column">
+                          <div className="bar" style={{ height: "205px" }}></div>
+                          <span>Vie</span>
+                        </div>
+
+                        <div className="chart-column">
+                          <div className="bar" style={{ height: "192px" }}></div>
+                          <span>Sáb</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="panel sales-panel">
+                    <h3>Últimas ventas</h3>
+
+                    <table className="sales-table">
+                      <thead>
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Cliente</th>
+                          <th>Producto</th>
+                          <th>Total</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        <tr>
+                          <td>12/05/2025</td>
+                          <td>María López</td>
+                          <td>Vestido floral</td>
+                          <td>$ 750.00</td>
+                        </tr>
+
+                        <tr>
+                          <td>12/05/2025</td>
+                          <td>Ana Torres</td>
+                          <td>Blusa manga corta</td>
+                          <td>$ 420.00</td>
+                        </tr>
+
+                        <tr>
+                          <td>11/05/2025</td>
+                          <td>Carmen Ruiz</td>
+                          <td>Pantalón lino</td>
+                          <td>$ 680.00</td>
+                        </tr>
+
+                        <tr>
+                          <td>11/05/2025</td>
+                          <td>Laura Gómez</td>
+                          <td>Falda plisada</td>
+                          <td>$ 550.00</td>
+                        </tr>
+
+                        <tr>
+                          <td>11/05/2025</td>
+                          <td>Sofía Ramírez</td>
+                          <td>Top escote</td>
+                          <td>$ 390.00</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {vistaActual === "productos" && (
+              <div className="vista-modulo">
+                <Productos />
               </div>
+            )}
 
-              <div className="panel sales-panel">
-                <h3>Últimas ventas</h3>
-
-                <table className="sales-table">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Cliente</th>
-                      <th>Producto</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    <tr>
-                      <td>12/05/2025</td>
-                      <td>María López</td>
-                      <td>Vestido floral</td>
-                      <td>$ 750.00</td>
-                    </tr>
-
-                    <tr>
-                      <td>12/05/2025</td>
-                      <td>Ana Torres</td>
-                      <td>Blusa manga corta</td>
-                      <td>$ 420.00</td>
-                    </tr>
-
-                    <tr>
-                      <td>11/05/2025</td>
-                      <td>Carmen Ruiz</td>
-                      <td>Pantalón lino</td>
-                      <td>$ 680.00</td>
-                    </tr>
-
-                    <tr>
-                      <td>11/05/2025</td>
-                      <td>Laura Gómez</td>
-                      <td>Falda plisada</td>
-                      <td>$ 550.00</td>
-                    </tr>
-
-                    <tr>
-                      <td>11/05/2025</td>
-                      <td>Sofía Ramírez</td>
-                      <td>Top escote</td>
-                      <td>$ 390.00</td>
-                    </tr>
-                  </tbody>
-                </table>
+            {vistaActual === "nuevaVenta" && (
+              <div className="vista-pendiente">
+                <h2 className="page-title">Nueva venta</h2>
+                <p>Esta página se trabajará aparte.</p>
               </div>
-            </div>
+            )}
+
+            {vistaActual === "ventas" && (
+              <div className="vista-pendiente">
+                <h2 className="page-title">Ventas</h2>
+                <p>Esta página se trabajará aparte.</p>
+              </div>
+            )}
+
+            {vistaActual === "recibos" && (
+              <div className="vista-pendiente">
+                <h2 className="page-title">Recibos</h2>
+                <p>Esta página se trabajará aparte.</p>
+              </div>
+            )}
+
+            {vistaActual === "compras" && (
+              <div className="vista-pendiente">
+                <h2 className="page-title">Compras</h2>
+                <p>Esta página se trabajará aparte.</p>
+              </div>
+            )}
+
+            {vistaActual === "proveedores" && (
+              <div className="vista-pendiente">
+                <h2 className="page-title">Proveedores</h2>
+                <p>Esta página se trabajará aparte.</p>
+              </div>
+            )}
+
+            {vistaActual === "clientes" && (
+              <div className="vista-pendiente">
+                <h2 className="page-title">Clientes</h2>
+                <p>Esta página se trabajará aparte.</p>
+              </div>
+            )}
+
+            {vistaActual === "empleados" && (
+              <div className="vista-pendiente">
+                <h2 className="page-title">Empleados</h2>
+                <p>Esta página se trabajará aparte.</p>
+              </div>
+            )}
           </section>
         </main>
       </div>
 
       {mostrarModalVentaFlash && (
-        <div
-          className="modal-overlay"
-          onClick={() => setMostrarModalVentaFlash(false)}
-        >
+        <div className="modal-overlay" onClick={cerrarModalVentaFlash}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Venta flash</h3>
 
-              <button
-                className="close-btn"
-                onClick={() => setMostrarModalVentaFlash(false)}
-              >
+              <button className="close-btn" onClick={cerrarModalVentaFlash}>
                 ×
               </button>
             </div>
 
-            <form className="sale-form">
+            <form className="sale-form" onSubmit={guardarVentaFlash}>
               <div className="form-row">
                 <div className="form-group">
                   <label>Cliente</label>
-                  <input type="text" placeholder="Nombre del cliente" />
+                  <input
+                    type="text"
+                    placeholder="Nombre del cliente"
+                    value={clienteVentaFlash}
+                    onChange={manejarClienteVentaFlash}
+                    required
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Fecha</label>
-                  <input type="date" />
+                  <input
+                    type="date"
+                    value={fechaVentaFlash}
+                    min={obtenerFechaActual()}
+                    onChange={(e) => setFechaVentaFlash(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
 
@@ -217,7 +415,7 @@ function DashboardDuena({ setRol }) {
 
                 <div className="form-group">
                   <label>Método de pago</label>
-                  <select>
+                  <select required>
                     <option value="">Seleccionar</option>
                     <option value="efectivo">Efectivo</option>
                     <option value="transferencia">Transferencia</option>
@@ -239,7 +437,7 @@ function DashboardDuena({ setRol }) {
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => setMostrarModalVentaFlash(false)}
+                  onClick={cerrarModalVentaFlash}
                 >
                   Cancelar
                 </button>
