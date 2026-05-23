@@ -1,22 +1,15 @@
-import { useState } from "react";
 import "./App.css";
 
-import InicioSesion from "./pages/InicioSesion/InicioSesion";
 import DashboardDuena from "./pages/duena/Dashboard/DashboardDuena";
-import DashboardColaborador from "./pages/colaborador/Dashboard/DashboardColaborador";
+
+//Ventanas que hice yo (Cris)
+
+// import NuevaVenta from "./pages/duena/NuevaVenta/NuevaVenta";
+// import Ventas from "./pages/duena/Ventas/Ventas";
+// import Recibos from "./pages/duena/Recibos/Recibos";
 
 function App() {
-  const [rol, setRol] = useState(null);
-
-  if (rol === "duena") {
-    return <DashboardDuena setRol={setRol} />;
-  }
-
-  if (rol === "colaborador") {
-    return <DashboardColaborador setRol={setRol} />;
-  }
-
-  return <InicioSesion setRol={setRol} />;
+  return <DashboardDuena />;
 }
 
 export default App;

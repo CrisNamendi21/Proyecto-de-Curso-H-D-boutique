@@ -1,0 +1,397 @@
+.empleados-page {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  background: #fff7fb;
+  overflow-y: auto;
+}
+
+/* Encabezado */
+.empleados-header {
+  margin-bottom: 18px;
+}
+
+.empleados-header h2 {
+  margin: 0;
+  color: #6b2c45;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.empleados-header p {
+  margin: 6px 0 0;
+  color: #9b6b7e;
+  font-size: 15px;
+}
+
+/* Tarjetas resumen */
+.empleados-resumen {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.empleado-card {
+  background: white;
+  border: 1px solid #f3aac8;
+  border-radius: 14px;
+  padding: 18px;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(160, 70, 110, 0.08);
+}
+
+.empleado-card span {
+  color: #6b2c45;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.empleado-card strong {
+  color: #243248;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+/* Filtros */
+.empleados-filtros {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid #f3aac8;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.empleados-filtros input,
+.empleados-filtros select {
+  height: 42px;
+  border: 1px solid #f3aac8;
+  border-radius: 10px;
+  background: white;
+  color: #6b2c45;
+  padding: 0 12px;
+  outline: none;
+  font-size: 14px;
+}
+
+.empleados-filtros input {
+  width: 260px;
+}
+
+.empleados-filtros select {
+  width: 180px;
+}
+
+.empleados-filtros input:focus,
+.empleados-filtros select:focus {
+  border-color: #ff3f7f;
+}
+
+.btn-filtrar,
+.btn-limpiar,
+.btn-agregar-empleado {
+  height: 42px;
+  border-radius: 10px;
+  padding: 0 18px;
+  cursor: pointer;
+  font-weight: 600;
+  border: 1px solid #f3aac8;
+  transition: 0.2s ease;
+}
+
+.btn-filtrar {
+  background: #fff3f8;
+  color: #ff3f7f;
+}
+
+.btn-limpiar {
+  background: white;
+  color: #6b2c45;
+}
+
+.btn-agregar-empleado {
+  margin-left: auto;
+  background: #ff3f7f;
+  color: white;
+  border: none;
+}
+
+.btn-filtrar:hover,
+.btn-limpiar:hover {
+  background: #ffe5ef;
+}
+
+.btn-agregar-empleado:hover {
+  background: #e92d6e;
+}
+
+/* Tabla */
+.empleados-tabla-contenedor {
+  background: white;
+  border: 1px solid #f3aac8;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(160, 70, 110, 0.08);
+}
+
+.empleados-tabla-contenedor h3 {
+  margin: 0;
+  padding: 14px 18px;
+  color: #243248;
+  font-size: 16px;
+  border-bottom: 1px solid #f8ccdc;
+}
+
+.empleados-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.empleados-tabla thead {
+  background: #fff1f6;
+}
+
+.empleados-tabla th {
+  color: #6b2c45;
+  padding: 12px 18px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.empleados-tabla td {
+  padding: 11px 18px;
+  color: #243248;
+  border-bottom: 1px solid #f8dde8;
+  font-size: 13px;
+}
+
+.empleados-tabla tbody tr:hover {
+  background: #fff7fb;
+}
+
+/* Estados */
+.estado {
+  display: inline-block;
+  min-width: 82px;
+  text-align: center;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estado.activo {
+  background: #dff7e8;
+  color: #16803c;
+}
+
+.estado.inactivo {
+  background: #eeeeee;
+  color: #777;
+}
+
+.sin-resultados {
+  text-align: center;
+  padding: 24px;
+  color: #9b6b7e;
+}
+
+/* Fondo modal */
+.modal-empleado-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(80, 30, 55, 0.28);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal */
+.modal-empleado {
+  width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #f3aac8;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 14px 35px rgba(80, 30, 55, 0.25);
+}
+
+/* Scroll del modal */
+.modal-empleado::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-empleado::-webkit-scrollbar-thumb {
+  background: #f3aac8;
+  border-radius: 10px;
+}
+
+.modal-empleado::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-empleado-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.modal-empleado-header h3 {
+  margin: 0;
+  color: #ff3f7f;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.modal-empleado-header button {
+  position: absolute;
+  right: 0;
+  border: none;
+  background: transparent;
+  color: #ff3f7f;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+/* Formulario */
+.form-empleado {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+.grupo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grupo-form-completo {
+  grid-column: span 2;
+}
+
+.grupo-form label {
+  color: #6b2c45;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.grupo-form input,
+.grupo-form select,
+.grupo-form textarea {
+  width: 100%;
+  border: 1px solid #f3aac8;
+  border-radius: 8px;
+  padding: 10px;
+  outline: none;
+  color: #6b2c45;
+  font-size: 13px;
+  background: white;
+  box-sizing: border-box;
+}
+
+.grupo-form textarea {
+  height: 80px;
+  resize: none;
+}
+
+.grupo-form input:focus,
+.grupo-form select:focus,
+.grupo-form textarea:focus {
+  border-color: #ff3f7f;
+  box-shadow: 0 0 0 2px rgba(255, 63, 127, 0.08);
+}
+
+.grupo-form input::placeholder,
+.grupo-form textarea::placeholder {
+  color: #9b8a92;
+}
+
+/* Botones del modal */
+.modal-empleado-botones {
+  grid-column: span 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.btn-cancelar,
+.btn-guardar {
+  width: 160px;
+  height: 42px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.btn-cancelar {
+  background: white;
+  border: 1px solid #f3aac8;
+  color: #ff3f7f;
+}
+
+.btn-guardar {
+  background: #ff3f7f;
+  border: none;
+  color: white;
+}
+
+.btn-cancelar:hover {
+  background: #fff1f6;
+}
+
+.btn-guardar:hover {
+  background: #e92d6e;
+}
+
+/* Responsive básico */
+@media (max-width: 900px) {
+  .empleados-resumen {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .empleados-filtros {
+    flex-wrap: wrap;
+  }
+
+  .btn-agregar-empleado {
+    margin-left: 0;
+  }
+
+  .modal-empleado {
+    width: 90%;
+  }
+}
+
+@media (max-width: 600px) {
+  .form-empleado {
+    grid-template-columns: 1fr;
+  }
+
+  .grupo-form-completo,
+  .modal-empleado-botones {
+    grid-column: span 1;
+  }
+
+  .modal-empleado-botones {
+    flex-direction: column;
+  }
+
+  .btn-cancelar,
+  .btn-guardar {
+    width: 100%;
+  }
+}
