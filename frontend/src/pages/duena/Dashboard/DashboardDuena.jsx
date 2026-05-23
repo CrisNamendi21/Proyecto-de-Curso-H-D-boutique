@@ -2,6 +2,20 @@ import { useState } from "react";
 import "./DashboardDuena.css";
 
 import Productos from "../Productos/Productos";
+import Proveedores from "../Proveedores/Proveedores";
+import Clientes from "../Clientes/Clientes";
+import Empleados from "../Empleados/Empleados";
+import Compras from "../Compras/Compras";
+//parte de cris en el frontend//
+import NuevaVenta from "../NuevaVenta/NuevaVenta"
+import Ventas from "../Ventas/Ventas"
+import Recibos from "../Recibos/Recibos"
+
+
+// import NuevaVenta from "./pages/duena/NuevaVenta/NuevaVenta";
+// import Ventas from "./pages/duena/Ventas/Ventas";
+// import Recibos from "./pages/duena/Recibos/Recibos";
+
 
 function DashboardDuena({ setRol }) {
   const [vistaActual, setVistaActual] = useState("dashboard");
@@ -131,6 +145,7 @@ function DashboardDuena({ setRol }) {
                 vistaActual === "clientes" ? "menu-item active" : "menu-item"
               }
               onClick={() => setVistaActual("clientes")}
+              
             >
               Clientes
             </button>
@@ -307,54 +322,53 @@ function DashboardDuena({ setRol }) {
               </div>
             )}
 
+            {vistaActual === "proveedores" && (
+              <div className="vista-modulo">
+                <Proveedores />
+              </div>
+            )}
+
+
             {vistaActual === "nuevaVenta" && (
-              <div className="vista-pendiente">
-                <h2 className="page-title">Nueva venta</h2>
-                <p>Esta página se trabajará aparte.</p>
+              <div className="vista-modulo">
+                <NuevaVenta />
               </div>
             )}
 
+            
             {vistaActual === "ventas" && (
-              <div className="vista-pendiente">
-                <h2 className="page-title">Ventas</h2>
-                <p>Esta página se trabajará aparte.</p>
+              <div className="vista-modulo">
+                <Ventas />
+              </div>
+            )}
+            
+            {vistaActual === "recibos" && (
+              <div className="vista-modulo">
+                <Recibos />
               </div>
             )}
 
-            {vistaActual === "recibos" && (
-              <div className="vista-pendiente">
-                <h2 className="page-title">Recibos</h2>
-                <p>Esta página se trabajará aparte.</p>
-              </div>
-            )}
 
             {vistaActual === "compras" && (
-              <div className="vista-pendiente">
-                <h2 className="page-title">Compras</h2>
-                <p>Esta página se trabajará aparte.</p>
-              </div>
-            )}
-
-            {vistaActual === "proveedores" && (
-              <div className="vista-pendiente">
-                <h2 className="page-title">Proveedores</h2>
-                <p>Esta página se trabajará aparte.</p>
+              <div className="vista-modulo">
+                <Compras />
               </div>
             )}
 
             {vistaActual === "clientes" && (
-              <div className="vista-pendiente">
-                <h2 className="page-title">Clientes</h2>
-                <p>Esta página se trabajará aparte.</p>
+              <div className="vista-modulo">
+                <Clientes />
+              </div>
+            )}
+            
+            
+            {vistaActual === "empleados" && (
+              <div className="vista-modulo">
+                <Empleados />
               </div>
             )}
 
-            {vistaActual === "empleados" && (
-              <div className="vista-pendiente">
-                <h2 className="page-title">Empleados</h2>
-                <p>Esta página se trabajará aparte.</p>
-              </div>
-            )}
+
           </section>
         </main>
       </div>
