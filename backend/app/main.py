@@ -47,6 +47,10 @@ app = FastAPI(
 )
 
 #Integracion del middleware (agregado por Cris, o sea yo)
+#Esos 2 servidores, son los que usa el frontend, que casi siempren apuntan a lo mismo
+#pero por seguridad pusimos los 2 (a veces el navegador los trata como distintos)
+
+#Esto permite que el frontend de react pueda pedir datos al fastapi
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
