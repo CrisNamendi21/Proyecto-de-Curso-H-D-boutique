@@ -11,35 +11,35 @@ from app.database import get_db
 #IMPORTACION de los routers
 
 #Modulo 1
-from app.routers.categoria_router import router as categoria_router
-from app.routers.departamento_router import router as departamento_router
-from app.routers.talla_router import router as talla_router
-from app.routers.tipo_pago_router import router as tipo_pago_router
-from app.routers.municipio_router import router as municipio_router
+from app.routers.catalogos.categoria_router import router as categoria_router
+from app.routers.catalogos.departamento_router import router as departamento_router
+from app.routers.catalogos.talla_router import router as talla_router
+from app.routers.catalogos.tipo_pago_router import router as tipo_pago_router
+from app.routers.catalogos.municipio_router import router as municipio_router
 
 #Modulo 2
-from app.routers.direccion_cliente_router import router as direccion_cliente_router
-from app.routers.direccion_empleado_router import router as direccion_empleado_router
-from app.routers.direccion_proveedor_router import router as direccion_proveedor_router
-from app.routers.cliente_router import router as cliente_router
-from app.routers.empleado_router import router as empleado_router
-from app.routers.proveedor_router import router as proveedor_router
+from app.routers.clientes.direccion_cliente_router import router as direccion_cliente_router
+from app.routers.empleados.direccion_empleado_router import router as direccion_empleado_router
+from app.routers.proveedores.direccion_proveedor_router import router as direccion_proveedor_router
+from app.routers.clientes.cliente_router import router as cliente_router
+from app.routers.empleados.empleado_router import router as empleado_router
+from app.routers.proveedores.proveedor_router import router as proveedor_router
 
 #Modulo 3
-from app.routers.producto_router import router as producto_router
-from app.routers.producto_proveedor_router import router as producto_proveedor_router
+from app.routers.productos.producto_router import router as producto_router
+from app.routers.productos.producto_proveedor_router import router as producto_proveedor_router
 
 #Modulo 4
-from app.routers.compra_router import router as compra_router
-from app.routers.venta_router import router as venta_router
-from app.routers.detalle_compra_router import router as detalle_compra_router
-from app.routers.detalle_venta_router import router as detalle_venta_router
-from app.routers import recibo_router
-from app.routers import pago_venta_router
+from app.routers.compras.compra_router import router as compra_router
+from app.routers.ventas.venta_router import router as venta_router
+from app.routers.compras.detalle_compra_router import router as detalle_compra_router
+from app.routers.ventas.detalle_venta_router import router as detalle_venta_router
+from app.routers.ventas.recibo_router import router as recibo_router
+from app.routers.ventas.pago_venta_router import router as pago_venta_router
 
 #Modulo 5
-from app.routers.devolucion_router import router as devolucion_router
-from app.routers.detalle_devolucion_router import router as detalle_devolucion_router
+from app.routers.devoluciones.devolucion_router import router as devolucion_router
+from app.routers.devoluciones.detalle_devolucion_router import router as detalle_devolucion_router
 
 
 app = FastAPI(
@@ -89,8 +89,8 @@ app.include_router(compra_router)
 app.include_router(venta_router)
 app.include_router(detalle_compra_router)
 app.include_router(detalle_venta_router)
-app.include_router(recibo_router.router)
-app.include_router(pago_venta_router.router)
+app.include_router(recibo_router)
+app.include_router(pago_venta_router)
 
 #modulo 5
 app.include_router(devolucion_router)
