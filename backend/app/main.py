@@ -35,6 +35,7 @@ from app.routers.venta_router import router as venta_router
 from app.routers.detalle_compra_router import router as detalle_compra_router
 from app.routers.detalle_venta_router import router as detalle_venta_router
 from app.routers import recibo_router
+from app.routers import pago_venta_router
 
 #Modulo 5
 from app.routers.devolucion_router import router as devolucion_router
@@ -89,6 +90,7 @@ app.include_router(venta_router)
 app.include_router(detalle_compra_router)
 app.include_router(detalle_venta_router)
 app.include_router(recibo_router.router)
+app.include_router(pago_venta_router.router)
 
 #modulo 5
 app.include_router(devolucion_router)
