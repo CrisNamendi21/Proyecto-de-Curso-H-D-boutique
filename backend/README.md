@@ -44,3 +44,9 @@ pip install -r requirements.txt
 
 Crear archivo .env
 .env
+
+Correr Servidor backend (luego de activar el entorno virtual):
+uvicorn app.main:app –-reload
+
+Correr servidor Frontend:
+npm run dev

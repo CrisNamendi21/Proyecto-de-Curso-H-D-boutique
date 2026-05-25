@@ -2,6 +2,9 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+#Importacion del cors
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.config import settings
 from app.database import get_db
 
@@ -31,6 +34,7 @@ from app.routers.compra_router import router as compra_router
 from app.routers.venta_router import router as venta_router
 from app.routers.detalle_compra_router import router as detalle_compra_router
 from app.routers.detalle_venta_router import router as detalle_venta_router
+from app.routers import recibo_router
 
 #Modulo 5
 from app.routers.devolucion_router import router as devolucion_router
@@ -43,6 +47,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
+#Integracion del middleware (agregado por Cris, o sea yo)
+#Esos 2 servidores, son los que usa el frontend, que casi siempren apuntan a lo mismo
+#pero por seguridad pusimos los 2 (a veces el navegador los trata como distintos)
+
+#Esto permite que el frontend de react pueda pedir datos al fastapi
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 #Registros de los routers
 #modulo 1
@@ -69,6 +88,7 @@ app.include_router(compra_router)
 app.include_router(venta_router)
 app.include_router(detalle_compra_router)
 app.include_router(detalle_venta_router)
+app.include_router(recibo_router.router)
 
 #modulo 5
 app.include_router(devolucion_router)
