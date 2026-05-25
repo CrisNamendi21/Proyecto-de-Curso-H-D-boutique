@@ -11,7 +11,7 @@ class Cliente(Base):
         ForeignKey("Direccion_clientes.ID_Direccion"),
         nullable=False
     )
-    Nombres = Column(Unicode(100), nullable=False)
-    Apellidos = Column(Unicode(100), nullable=False)
+    Nombres = Column(Unicode(100), nullable=True)
+    Apellidos = Column(Unicode(100), nullable=True)
     Estado = Column(Unicode(50), nullable=False)
     NumeroTelefono = Column(Unicode(20), nullable=True)
