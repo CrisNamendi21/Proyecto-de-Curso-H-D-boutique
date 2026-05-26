@@ -203,11 +203,20 @@ def registrar_venta_completa(
             "Subtotal": subtotal_producto
         })
 
+    total_productos = sum(
+        item["Subtotal"] for item in productos_validados
+    )
+
+    costo_delivery = venta_data.CostoDelivery or 0
+
+    total_venta = total_productos + costo_delivery
+
     return {
-        "mensaje": "Validaciones de cliente, empleado, delivery y productos correctas.",
+        "mensaje": "Total de venta calculado correctamente.",
         "ID_Cliente": venta_data.ID_Cliente,
         "ID_Empleado": venta_data.ID_Empleado,
-        "EsDelivery": es_delivery,
         "CostoDelivery": venta_data.CostoDelivery,
+        "TotalProductos": total_productos,
+        "TotalVenta": total_venta,
         "productos_validados": productos_validados
     }
