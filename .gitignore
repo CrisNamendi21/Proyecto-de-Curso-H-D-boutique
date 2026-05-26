@@ -13,3 +13,7 @@ __pycache__/
 
 # Archivos de configuración local de VS Code
 .vscode/
+
+#Archivos de configuracion de pycharm (por lo general no se suben)
+**/.idea
+**/pyproject.toml
