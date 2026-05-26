@@ -211,12 +211,34 @@ def registrar_venta_completa(
 
     total_venta = total_productos + costo_delivery
 
+    total_pagado = sum(
+        pago.Monto for pago in venta_data.pagos
+    )
+
+    for pago in venta_data.pagos:
+        tipo_pago = db.query(TipoPago).filter(
+            TipoPago.Tipo_pago == pago.Tipo_pago
+        ).first()
+
+        if not tipo_pago:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Tipo de pago con ID {pago.Tipo_pago} no encontrado"
+            )
+
+    if total_pagado != total_venta:
+        raise HTTPException(
+            status_code=400,
+            detail=f"La suma de los pagos ({total_pagado}) no coincide con el total de la venta ({total_venta})."
+        )
+
     return {
-        "mensaje": "Total de venta calculado correctamente.",
+        "mensaje": "Total y pagos validados correctamente.",
         "ID_Cliente": venta_data.ID_Cliente,
         "ID_Empleado": venta_data.ID_Empleado,
         "CostoDelivery": venta_data.CostoDelivery,
         "TotalProductos": total_productos,
         "TotalVenta": total_venta,
+        "TotalPagado": total_pagado,
         "productos_validados": productos_validados
     }
