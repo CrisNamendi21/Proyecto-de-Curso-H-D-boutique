@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from datetime import date, datetime
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -11,6 +12,10 @@ from app.schemas.ventas.venta_schema import (
     VentaUpdate,
     VentaResponse,
 )
+
+from app.models.ventas.detalle_venta_model import DetalleVenta
+from app.models.ventas.pago_venta_model import PagoVenta
+from app.models.ventas.recibo_model import Recibo
 
 from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
 from app.models.clientes.direccion_cliente_model import DireccionCliente
@@ -174,7 +179,6 @@ def registrar_venta_completa(
                 detail="Para ventas con delivery, el cliente debe tener un departamento registrado."
             )
 
-#parte nueva
     productos_validados = []
 
     for item in venta_data.productos:
@@ -232,13 +236,65 @@ def registrar_venta_completa(
             detail=f"La suma de los pagos ({total_pagado}) no coincide con el total de la venta ({total_venta})."
         )
 
+    nueva_venta = Venta(
+        FechaVenta=date.today(),
+        Tipo_pago=venta_data.pagos[0].Tipo_pago,
+        ID_Cliente=venta_data.ID_Cliente,
+        ID_Empleado=venta_data.ID_Empleado,
+        Total=total_venta,
+        CostoDelivery=venta_data.CostoDelivery
+    )
+
+    db.add(nueva_venta)
+    db.flush()
+
+    for item in productos_validados:
+        nuevo_detalle = DetalleVenta(
+            ID_Venta=nueva_venta.ID_Venta,
+            ID_Producto=item["ID_Producto"],
+            Cantidad=item["Cantidad"],
+            PrecioUnitario=item["PrecioUnitario"],
+            subtotal=item["Subtotal"]
+        )
+
+        db.add(nuevo_detalle)
+
+        producto = db.query(Producto).filter(
+            Producto.ID_Producto == item["ID_Producto"]
+        ).first()
+
+        producto.Stock = producto.Stock - item["Cantidad"]
+
+    for pago in venta_data.pagos:
+        nuevo_pago = PagoVenta(
+            ID_Venta=nueva_venta.ID_Venta,
+            Tipo_pago=pago.Tipo_pago,
+            Monto=pago.Monto,
+            Referencia=pago.Referencia
+        )
+
+        db.add(nuevo_pago)
+
+    nuevo_recibo = Recibo(
+        ID_Venta=nueva_venta.ID_Venta,
+        FechaEmision=datetime.now(),
+        Estado="EMITIDO",
+        Observacion=venta_data.ObservacionRecibo
+    )
+
+    db.add(nuevo_recibo)
+
+    db.commit()
+    db.refresh(nueva_venta)
+
     return {
-        "mensaje": "Total y pagos validados correctamente.",
-        "ID_Cliente": venta_data.ID_Cliente,
-        "ID_Empleado": venta_data.ID_Empleado,
-        "CostoDelivery": venta_data.CostoDelivery,
+        "mensaje": "Venta completa registrada correctamente.",
+        "ID_Venta": nueva_venta.ID_Venta,
+        "ID_Cliente": nueva_venta.ID_Cliente,
+        "ID_Empleado": nueva_venta.ID_Empleado,
+        "CostoDelivery": nueva_venta.CostoDelivery,
         "TotalProductos": total_productos,
-        "TotalVenta": total_venta,
+        "TotalVenta": nueva_venta.Total,
         "TotalPagado": total_pagado,
-        "productos_validados": productos_validados
+        "ReciboGenerado": True
     }
