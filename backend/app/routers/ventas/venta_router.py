@@ -12,6 +12,7 @@ from app.schemas.ventas.venta_schema import (
     VentaResponse,
 )
 
+from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
 
 router = APIRouter(
     prefix="/ventas",
@@ -114,3 +115,12 @@ def actualizar_venta(
     db.refresh(venta)
 
     return venta
+
+#Endpoint temporal para verificar que FastAPI recibe correctamente
+#La estructura de una venta completa antes de implementar la logica real.
+@router.post("/registrar-completa")
+def registrar_venta_completa(venta_data: VentaCompletaCreate):
+    return {
+        "mensaje": "Endpoint de venta completa funcionando correctamente.",
+        "datos_recibidos": venta_data
+    }
