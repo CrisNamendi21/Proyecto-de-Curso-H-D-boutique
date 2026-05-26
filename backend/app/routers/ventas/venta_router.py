@@ -13,6 +13,7 @@ from app.schemas.ventas.venta_schema import (
 )
 
 from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
+from app.models.clientes.direccion_cliente_model import DireccionCliente
 
 router = APIRouter(
     prefix="/ventas",
@@ -116,11 +117,67 @@ def actualizar_venta(
 
     return venta
 
-#Endpoint temporal para verificar que FastAPI recibe correctamente
-#La estructura de una venta completa antes de implementar la logica real.
 @router.post("/registrar-completa")
-def registrar_venta_completa(venta_data: VentaCompletaCreate):
+def registrar_venta_completa(
+    venta_data: VentaCompletaCreate,
+    db: Session = Depends(get_db)
+):
+    cliente = db.query(Cliente).filter(
+        Cliente.ID_Cliente == venta_data.ID_Cliente
+    ).first()
+
+    if not cliente:
+        raise HTTPException(
+            status_code=404,
+            detail="Cliente no encontrado"
+        )
+
+    empleado = db.query(Empleado).filter(
+        Empleado.ID_Empleado == venta_data.ID_Empleado
+    ).first()
+
+    if not empleado:
+        raise HTTPException(
+            status_code=404,
+            detail="Empleado no encontrado"
+        )
+
+    es_delivery = venta_data.CostoDelivery is not None
+
+    if es_delivery:
+        if not cliente.Nombres or not cliente.Apellidos or not cliente.NumeroTelefono:
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery, el cliente debe tener nombres, apellidos y número de teléfono."
+            )
+
+        direccion_cliente = db.query(DireccionCliente).filter(
+            DireccionCliente.ID_Direccion == cliente.ID_Direccion
+        ).first()
+
+        if not direccion_cliente:
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery, el cliente debe tener una dirección registrada."
+            )
+
+        if not direccion_cliente.Direccion:
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery, el cliente debe tener una dirección exacta."
+            )
+
+        if not direccion_cliente.ID_Departamento:
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery, el cliente debe tener un departamento registrado."
+            )
+
     return {
-        "mensaje": "Endpoint de venta completa funcionando correctamente.",
-        "datos_recibidos": venta_data
+        "mensaje": "Validaciones iniciales correctas.",
+        "ID_Cliente": venta_data.ID_Cliente,
+        "ID_Empleado": venta_data.ID_Empleado,
+        "EsDelivery": es_delivery,
+        "CostoDelivery": venta_data.CostoDelivery,
+        "nota": "Municipio no se valida porque Direccion_clientes no contiene ID_Municipio."
     }
