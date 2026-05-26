@@ -14,6 +14,7 @@ from app.schemas.ventas.venta_schema import (
 
 from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
 from app.models.clientes.direccion_cliente_model import DireccionCliente
+from app.models.productos.producto_model import Producto
 
 router = APIRouter(
     prefix="/ventas",
@@ -173,11 +174,40 @@ def registrar_venta_completa(
                 detail="Para ventas con delivery, el cliente debe tener un departamento registrado."
             )
 
+#parte nueva
+    productos_validados = []
+
+    for item in venta_data.productos:
+        producto = db.query(Producto).filter(
+            Producto.ID_Producto == item.ID_Producto
+        ).first()
+
+        if not producto:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Producto con ID {item.ID_Producto} no encontrado"
+            )
+
+        if producto.Stock < item.Cantidad:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No hay stock suficiente para el producto con ID {item.ID_Producto}"
+            )
+
+        subtotal_producto = item.Cantidad * item.PrecioUnitario
+
+        productos_validados.append({
+            "ID_Producto": producto.ID_Producto,
+            "Cantidad": item.Cantidad,
+            "PrecioUnitario": item.PrecioUnitario,
+            "Subtotal": subtotal_producto
+        })
+
     return {
-        "mensaje": "Validaciones iniciales correctas.",
+        "mensaje": "Validaciones de cliente, empleado, delivery y productos correctas.",
         "ID_Cliente": venta_data.ID_Cliente,
         "ID_Empleado": venta_data.ID_Empleado,
         "EsDelivery": es_delivery,
         "CostoDelivery": venta_data.CostoDelivery,
-        "nota": "Municipio no se valida porque Direccion_clientes no contiene ID_Municipio."
+        "productos_validados": productos_validados
     }
