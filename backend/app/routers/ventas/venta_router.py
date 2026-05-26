@@ -20,11 +20,138 @@ from app.models.ventas.recibo_model import Recibo
 from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
 from app.models.clientes.direccion_cliente_model import DireccionCliente
 from app.models.productos.producto_model import Producto
+from app.models.catalogos.departamento_model import Departamento
 
 router = APIRouter(
     prefix="/ventas",
     tags=["Ventas"]
 )
+
+
+def _texto_presente(valor):
+    return valor is not None and str(valor).strip() != ""
+
+
+def _obtener_departamento_default(db: Session):
+    departamento = db.query(Departamento).filter(
+        Departamento.ID_Departamento == 1
+    ).first()
+
+    if not departamento:
+        departamento = db.query(Departamento).first()
+
+    if not departamento:
+        raise HTTPException(
+            status_code=400,
+            detail="No hay departamentos registrados para crear clientes."
+        )
+
+    return departamento.ID_Departamento
+
+
+def _crear_cliente_generico(db: Session):
+    cliente_generico = db.query(Cliente).filter(
+        Cliente.Nombres == "Cliente",
+        Cliente.Apellidos == "General",
+        Cliente.Estado == "ACTIVO"
+    ).first()
+
+    if cliente_generico:
+        return cliente_generico
+
+    direccion_generica = DireccionCliente(
+        ID_Departamento=_obtener_departamento_default(db),
+        Direccion=None
+    )
+    db.add(direccion_generica)
+    db.flush()
+
+    cliente_generico = Cliente(
+        ID_Direccion=direccion_generica.ID_Direccion,
+        Nombres="Cliente",
+        Apellidos="General",
+        Estado="ACTIVO",
+        NumeroTelefono=None
+    )
+    db.add(cliente_generico)
+    db.flush()
+
+    return cliente_generico
+
+
+def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
+    datos_cliente = venta_data.cliente
+    es_delivery = venta_data.CostoDelivery is not None
+
+    if not datos_cliente:
+        if es_delivery:
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery debes enviar los datos del cliente."
+            )
+        return _crear_cliente_generico(db)
+
+    if not _texto_presente(datos_cliente.Nombres) or not _texto_presente(datos_cliente.Apellidos):
+        raise HTTPException(
+            status_code=400,
+            detail="Debes enviar nombres y apellidos del cliente."
+        )
+
+    if es_delivery:
+        if not _texto_presente(datos_cliente.NumeroTelefono):
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery debes enviar el número de teléfono del cliente."
+            )
+
+        if not _texto_presente(datos_cliente.Direccion):
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery debes enviar la dirección exacta del cliente."
+            )
+
+        if datos_cliente.ID_Departamento is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery debes enviar el departamento del cliente."
+            )
+
+        departamento = db.query(Departamento).filter(
+            Departamento.ID_Departamento == datos_cliente.ID_Departamento
+        ).first()
+
+        if not departamento:
+            raise HTTPException(
+                status_code=404,
+                detail="Departamento no encontrado"
+            )
+
+        id_departamento = datos_cliente.ID_Departamento
+        direccion = datos_cliente.Direccion.strip()
+    else:
+        id_departamento = datos_cliente.ID_Departamento or _obtener_departamento_default(db)
+        direccion = datos_cliente.Direccion.strip() if _texto_presente(datos_cliente.Direccion) else None
+
+    nueva_direccion = DireccionCliente(
+        ID_Departamento=id_departamento,
+        Direccion=direccion
+    )
+    db.add(nueva_direccion)
+    db.flush()
+
+    nuevo_cliente = Cliente(
+        ID_Direccion=nueva_direccion.ID_Direccion,
+        Nombres=datos_cliente.Nombres.strip(),
+        Apellidos=datos_cliente.Apellidos.strip(),
+        Estado="ACTIVO",
+        NumeroTelefono=datos_cliente.NumeroTelefono.strip()
+        if _texto_presente(datos_cliente.NumeroTelefono)
+        else None
+    )
+    db.add(nuevo_cliente)
+    db.flush()
+
+    return nuevo_cliente
 
 
 @router.get("/", response_model=list[VentaResponse])
@@ -130,15 +257,18 @@ def registrar_venta_completa(
 ):
 
     try:
-        cliente = db.query(Cliente).filter(
-            Cliente.ID_Cliente == venta_data.ID_Cliente
-        ).first()
+        if venta_data.ID_Cliente is not None:
+            cliente = db.query(Cliente).filter(
+                Cliente.ID_Cliente == venta_data.ID_Cliente
+            ).first()
 
-        if not cliente:
-            raise HTTPException(
-                status_code=404,
-                detail="Cliente no encontrado"
-            )
+            if not cliente:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Cliente no encontrado"
+                )
+        else:
+            cliente = _crear_cliente_desde_venta(venta_data, db)
 
         empleado = db.query(Empleado).filter(
             Empleado.ID_Empleado == venta_data.ID_Empleado
@@ -241,7 +371,7 @@ def registrar_venta_completa(
         nueva_venta = Venta(
             FechaVenta=date.today(),
             Tipo_pago=venta_data.pagos[0].Tipo_pago,
-            ID_Cliente=venta_data.ID_Cliente,
+            ID_Cliente=cliente.ID_Cliente,
             ID_Empleado=venta_data.ID_Empleado,
             Total=total_venta,
             CostoDelivery=venta_data.CostoDelivery

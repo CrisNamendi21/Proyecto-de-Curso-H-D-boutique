@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.productos.producto_model import Producto
+from app.models.productos.producto_proveedor_model import ProductoProveedor
 from app.models.catalogos.categoria_model import Categoria
 from app.models.catalogos.talla_model import Talla
 from app.schemas.productos.producto_schema import (
@@ -18,9 +20,34 @@ router = APIRouter(
 )
 
 
+def producto_con_precio(producto: Producto, db: Session):
+    producto_data = {
+        "ID_Producto": producto.ID_Producto,
+        "ID_Categoria": producto.ID_Categoria,
+        "ID_Talla": producto.ID_Talla,
+        "Nombre": producto.Nombre,
+        "Stock": producto.Stock,
+        "Estado": producto.Estado,
+        "Descripcion": producto.Descripcion,
+        "PrecioUnitario": None,
+    }
+
+    producto_proveedor = db.query(ProductoProveedor).filter(
+        ProductoProveedor.ID_Producto == producto.ID_Producto
+    ).order_by(
+        ProductoProveedor.ID_ProductoProveedor.desc()
+    ).first()
+
+    if producto_proveedor:
+        producto_data["PrecioUnitario"] = producto_proveedor.PrecioDeCompra * Decimal("1.15")
+
+    return producto_data
+
+
 @router.get("/", response_model=list[ProductoResponse])
 def listar_productos(db: Session = Depends(get_db)):
-    return db.query(Producto).all()
+    productos = db.query(Producto).all()
+    return [producto_con_precio(producto, db) for producto in productos]
 
 
 @router.get("/{id_producto}", response_model=ProductoResponse)
@@ -32,7 +59,7 @@ def obtener_producto(id_producto: int, db: Session = Depends(get_db)):
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    return producto
+    return producto_con_precio(producto, db)
 
 
 @router.post("/", response_model=ProductoResponse)

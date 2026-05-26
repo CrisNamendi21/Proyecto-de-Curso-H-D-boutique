@@ -5,7 +5,7 @@
   color: #2f2933;
   font-family: "Segoe UI", sans-serif;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .nueva-venta-header {
@@ -26,6 +26,10 @@
   grid-template-columns: 1.4fr 1fr 1fr;
   gap: 18px;
   margin-bottom: 16px;
+}
+
+.datos-cliente-venta {
+  margin-top: -6px;
 }
 
 .campo-grupo {
@@ -342,31 +346,6 @@
   color: #2f2933;
 }
 
-.descuento-control {
-  display: flex;
-  align-items: center;
-  border: 1px solid #f1c8da;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fffafd;
-  height: 38px;
-}
-
-.descuento-control input {
-  width: 92px;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 9px;
-  color: #342d33;
-}
-
-.descuento-control span {
-  padding: 0 10px;
-  color: #8c6d7b;
-  font-size: 13px;
-}
-
 .resumen-total {
   margin-top: 4px;
   padding-top: 12px;
@@ -472,6 +451,18 @@
   font-weight: 700;
 }
 
+.mensaje-success {
+  background: #eefaf1;
+  border-color: #b7e4c7;
+  color: #2d6a4f;
+}
+
+.mensaje-error {
+  background: #fff0f6;
+  border-color: #f8bbd7;
+  color: #b02663;
+}
+
 .acciones-venta {
   flex-shrink: 0;
   display: flex;
@@ -512,6 +503,13 @@
 .btn-finalizar:hover {
   transform: translateY(-1px);
   box-shadow: 0 14px 25px rgba(214, 43, 117, 0.3);
+}
+
+.btn-cancelar:disabled,
+.btn-finalizar:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
 }
 
 .tabla-productos-disponibles::-webkit-scrollbar,

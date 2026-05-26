@@ -1,14 +1,35 @@
 const API_URL = "http://127.0.0.1:8000";
 
+async function procesarRespuesta(respuesta, mensajeError) {
+  let datos = null;
+
+  try {
+    datos = await respuesta.json();
+  } catch {
+    datos = null;
+  }
+
+  if (!respuesta.ok) {
+    const detalle = datos?.detail;
+
+    if (Array.isArray(detalle)) {
+      throw new Error("Hay campos inválidos o incompletos en la solicitud.");
+    }
+
+    throw new Error(detalle || mensajeError);
+  }
+
+  return datos;
+}
+
 export async function obtenerDatos(ruta) {
   try {
     const respuesta = await fetch(`${API_URL}${ruta}`);
 
-    if (!respuesta.ok) {
-      throw new Error("Error al obtener datos del servidor");
-    }
-
-    return await respuesta.json();
+    return await procesarRespuesta(
+      respuesta,
+      "Error al obtener datos del servidor"
+    );
   } catch (error) {
     console.error("Error en obtenerDatos:", error);
     throw error;
@@ -25,11 +46,10 @@ export async function enviarDatos(ruta, datos) {
       body: JSON.stringify(datos),
     });
 
-    if (!respuesta.ok) {
-      throw new Error("Error al enviar datos al servidor");
-    }
-
-    return await respuesta.json();
+    return await procesarRespuesta(
+      respuesta,
+      "Error al enviar datos al servidor"
+    );
   } catch (error) {
     console.error("Error en enviarDatos:", error);
     throw error;
@@ -46,13 +66,28 @@ export async function actualizarDatos(ruta, datos) {
       body: JSON.stringify(datos),
     });
 
-    if (!respuesta.ok) {
-      throw new Error("Error al actualizar datos en el servidor");
-    }
-
-    return await respuesta.json();
+    return await procesarRespuesta(
+      respuesta,
+      "Error al actualizar datos en el servidor"
+    );
   } catch (error) {
     console.error("Error en actualizarDatos:", error);
     throw error;
   }
+}
+
+export function obtenerProductos() {
+  return obtenerDatos("/productos/");
+}
+
+export function obtenerTiposPago() {
+  return obtenerDatos("/tipos-pago/");
+}
+
+export function obtenerDepartamentos() {
+  return obtenerDatos("/departamentos/");
+}
+
+export function registrarVentaCompleta(datos) {
+  return enviarDatos("/ventas/registrar-completa", datos);
 }

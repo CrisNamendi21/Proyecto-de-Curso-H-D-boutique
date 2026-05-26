@@ -1,5 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  obtenerDepartamentos,
+  obtenerProductos,
+  obtenerTiposPago,
+  registrarVentaCompleta,
+} from "../../../api/api";
 import "./NuevaVenta.css";
+
+const ID_EMPLEADO_TEMPORAL = 1;
 
 function NuevaVenta() {
   const obtenerFechaActual = () => {
@@ -9,79 +17,32 @@ function NuevaVenta() {
     return fechaLocal.toISOString().split("T")[0];
   };
 
-  const productosIniciales = [
-    {
-      id: 1,
-      nombre: "Blusa Manga Larga",
-      precio: 950,
-      stock: 8,
-    },
-    {
-      id: 2,
-      nombre: "Vestido Floral",
-      precio: 1250,
-      stock: 12,
-    },
-    {
-      id: 3,
-      nombre: "Pantalón Palazzo",
-      precio: 1100,
-      stock: 5,
-    },
-    {
-      id: 4,
-      nombre: "Camisa Oversize",
-      precio: 850,
-      stock: 3,
-    },
-    {
-      id: 5,
-      nombre: "Falda Plisada",
-      precio: 780,
-      stock: 3,
-    },
-    {
-      id: 6,
-      nombre: "Short Denim",
-      precio: 650,
-      stock: 15,
-    },
-    {
-      id: 7,
-      nombre: "Top Básico",
-      precio: 450,
-      stock: 20,
-    },
-    {
-      id: 8,
-      nombre: "Jeans Mom Fit",
-      precio: 1350,
-      stock: 6,
-    },
-    {
-      id: 9,
-      nombre: "Bolso Beige",
-      precio: 980,
-      stock: 4,
-    },
-    {
-      id: 10,
-      nombre: "Sandalias Rosadas",
-      precio: 1150,
-      stock: 7,
-    },
-  ];
+  const [productos, setProductos] = useState([]);
+  const [tiposPago, setTiposPago] = useState([]);
+  const [departamentos, setDepartamentos] = useState([]);
+  const [cargandoDatos, setCargandoDatos] = useState(true);
+  const [registrandoVenta, setRegistrandoVenta] = useState(false);
 
-  const [cliente, setCliente] = useState("");
+  const [tipoCliente, setTipoCliente] = useState("generico");
+  const [nombresCliente, setNombresCliente] = useState("");
+  const [apellidosCliente, setApellidosCliente] = useState("");
+  const [telefonoCliente, setTelefonoCliente] = useState("");
+  const [direccionCliente, setDireccionCliente] = useState("");
+  const [departamentoCliente, setDepartamentoCliente] = useState("");
   const [fecha, setFecha] = useState(obtenerFechaActual());
   const [metodoPago, setMetodoPago] = useState("");
-  const [montoEfectivo, setMontoEfectivo] = useState("");
-  const [montoTransferencia, setMontoTransferencia] = useState("");
+  const [referenciaPago, setReferenciaPago] = useState("");
+  const [costoDelivery, setCostoDelivery] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [productosVenta, setProductosVenta] = useState([]);
-  const [descuento, setDescuento] = useState("");
   const [notas, setNotas] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [tipoMensaje, setTipoMensaje] = useState("info");
+
+  const mostrarMensaje = (texto, tipo = "info") => {
+    setMensaje(texto);
+    setTipoMensaje(tipo);
+  };
 
   const formatearDinero = (valor) => {
     return `C$ ${Number(valor).toLocaleString("es-NI", {
@@ -90,64 +51,135 @@ function NuevaVenta() {
     })}`;
   };
 
-  const manejarCliente = (e) => {
+  const cargarDatosIniciales = async () => {
+    setCargandoDatos(true);
+
+    try {
+      const [productosRespuesta, tiposPagoRespuesta, departamentosRespuesta] =
+        await Promise.all([
+          obtenerProductos(),
+          obtenerTiposPago(),
+          obtenerDepartamentos(),
+        ]);
+
+      setProductos(productosRespuesta);
+      setTiposPago(tiposPagoRespuesta);
+      setDepartamentos(departamentosRespuesta);
+      setMensaje("");
+    } catch (error) {
+      mostrarMensaje(
+        error.message || "No se pudieron cargar los datos del servidor.",
+        "error"
+      );
+    } finally {
+      setCargandoDatos(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarDatosIniciales();
+  }, []);
+
+  const manejarTextoCliente = (setter) => (e) => {
     const valor = e.target.value;
 
     if (/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*$/.test(valor)) {
-      setCliente(valor);
+      setter(valor);
     }
   };
 
   const manejarMetodoPago = (e) => {
-    const valor = e.target.value;
-    setMetodoPago(valor);
-    setMontoEfectivo("");
-    setMontoTransferencia("");
+    setMetodoPago(e.target.value);
+    setReferenciaPago("");
     setMensaje("");
   };
 
-  const productosFiltrados = productosIniciales.filter((producto) =>
-    producto.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  const manejarTipoCliente = (e) => {
+    const nuevoTipo = e.target.value;
+
+    setTipoCliente(nuevoTipo);
+    setNombresCliente("");
+    setApellidosCliente("");
+    setTelefonoCliente("");
+    setDireccionCliente("");
+    setDepartamentoCliente("");
+    setCostoDelivery("");
+    setMensaje("");
+  };
+
+  const productosFiltrados = productos.filter((producto) =>
+    producto.Nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
+
+  const obtenerPrecioProducto = (producto) => {
+    return Number(producto.PrecioUnitario) || 0;
+  };
 
   const agregarProducto = (producto) => {
     setMensaje("");
 
+    const precio = obtenerPrecioProducto(producto);
+
+    if (precio <= 0) {
+      mostrarMensaje(
+        "Este producto no tiene precio de venta configurado.",
+        "error"
+      );
+      return;
+    }
+
+    if (producto.Stock <= 0) {
+      mostrarMensaje("Este producto no tiene stock disponible.", "error");
+      return;
+    }
+
     const productoExistente = productosVenta.find(
-      (item) => item.id === producto.id
+      (item) => item.ID_Producto === producto.ID_Producto
     );
 
     if (productoExistente) {
-      if (productoExistente.cantidad >= producto.stock) {
-        setMensaje("No puedes agregar más unidades que el stock disponible.");
+      if (productoExistente.Cantidad >= producto.Stock) {
+        mostrarMensaje(
+          "No puedes agregar más unidades que el stock disponible.",
+          "error"
+        );
         return;
       }
 
       setProductosVenta(
         productosVenta.map((item) =>
-          item.id === producto.id
-            ? { ...item, cantidad: item.cantidad + 1 }
+          item.ID_Producto === producto.ID_Producto
+            ? { ...item, Cantidad: item.Cantidad + 1 }
             : item
         )
       );
       return;
     }
 
-    setProductosVenta([...productosVenta, { ...producto, cantidad: 1 }]);
+    setProductosVenta([
+      ...productosVenta,
+      {
+        ID_Producto: producto.ID_Producto,
+        Nombre: producto.Nombre,
+        Stock: producto.Stock,
+        PrecioUnitario: precio,
+        Cantidad: 1,
+      },
+    ]);
   };
 
-  const aumentarCantidad = (id) => {
+  const aumentarCantidad = (idProducto) => {
     setMensaje("");
 
     setProductosVenta(
       productosVenta.map((item) => {
-        if (item.id === id) {
-          if (item.cantidad >= item.stock) {
-            setMensaje("No puedes superar el stock disponible.");
+        if (item.ID_Producto === idProducto) {
+          if (item.Cantidad >= item.Stock) {
+            mostrarMensaje("No puedes superar el stock disponible.", "error");
             return item;
           }
 
-          return { ...item, cantidad: item.cantidad + 1 };
+          return { ...item, Cantidad: item.Cantidad + 1 };
         }
 
         return item;
@@ -155,20 +187,22 @@ function NuevaVenta() {
     );
   };
 
-  const disminuirCantidad = (id) => {
+  const disminuirCantidad = (idProducto) => {
     setMensaje("");
 
     setProductosVenta(
       productosVenta.map((item) =>
-        item.id === id && item.cantidad > 1
-          ? { ...item, cantidad: item.cantidad - 1 }
+        item.ID_Producto === idProducto && item.Cantidad > 1
+          ? { ...item, Cantidad: item.Cantidad - 1 }
           : item
       )
     );
   };
 
-  const eliminarProducto = (id) => {
-    setProductosVenta(productosVenta.filter((item) => item.id !== id));
+  const eliminarProducto = (idProducto) => {
+    setProductosVenta(
+      productosVenta.filter((item) => item.ID_Producto !== idProducto)
+    );
   };
 
   const vaciarProductosVenta = () => {
@@ -177,96 +211,170 @@ function NuevaVenta() {
   };
 
   const vaciarVenta = () => {
-    setCliente("");
+    setTipoCliente("generico");
+    setNombresCliente("");
+    setApellidosCliente("");
+    setTelefonoCliente("");
+    setDireccionCliente("");
+    setDepartamentoCliente("");
     setFecha(obtenerFechaActual());
     setMetodoPago("");
-    setMontoEfectivo("");
-    setMontoTransferencia("");
+    setReferenciaPago("");
+    setCostoDelivery("");
     setBusqueda("");
     setProductosVenta([]);
-    setDescuento("");
     setNotas("");
     setMensaje("");
   };
 
-  const subtotal = useMemo(() => {
+  const totalProductos = useMemo(() => {
     return productosVenta.reduce(
-      (total, item) => total + item.precio * item.cantidad,
+      (total, item) => total + item.PrecioUnitario * item.Cantidad,
       0
     );
   }, [productosVenta]);
 
-  const descuentoNumerico = Number(descuento) || 0;
-  const baseImponible = Math.max(subtotal - descuentoNumerico, 0);
-  const impuesto = baseImponible * 0.15;
-  const total = baseImponible + impuesto;
+  const costoDeliveryNumerico =
+    tipoCliente === "delivery" ? Number(costoDelivery) || 0 : 0;
+  const total = totalProductos + costoDeliveryNumerico;
 
-  const montoEfectivoNumerico = Number(montoEfectivo) || 0;
-  const montoTransferenciaNumerico = Number(montoTransferencia) || 0;
-  const totalPagado = montoEfectivoNumerico + montoTransferenciaNumerico;
-  const diferenciaPago = total - totalPagado;
-
-  const finalizarVenta = () => {
-    if (!cliente.trim()) {
-      setMensaje("Debes ingresar el nombre del cliente.");
-      return;
-    }
-
+  const validarVenta = () => {
     if (!fecha) {
-      setMensaje("Debes seleccionar una fecha.");
-      return;
+      return "Debes seleccionar una fecha.";
     }
 
     if (fecha < obtenerFechaActual()) {
-      setMensaje("La fecha no puede ser anterior a la fecha actual.");
-      return;
-    }
-
-    if (!metodoPago) {
-      setMensaje("Debes seleccionar un método de pago.");
-      return;
+      return "La fecha no puede ser anterior a la fecha actual.";
     }
 
     if (productosVenta.length === 0) {
-      setMensaje("Debes agregar al menos un producto a la venta.");
-      return;
+      return "Debes agregar al menos un producto a la venta.";
     }
 
-    if (descuentoNumerico < 0) {
-      setMensaje("El descuento no puede ser negativo.");
-      return;
+    const productoSinPrecio = productosVenta.find(
+      (producto) => producto.PrecioUnitario <= 0
+    );
+
+    if (productoSinPrecio) {
+      return `El producto ${productoSinPrecio.Nombre} no tiene precio válido.`;
     }
 
-    if (descuentoNumerico > subtotal) {
-      setMensaje("El descuento no puede ser mayor que el subtotal.");
-      return;
+    const productoSinStock = productosVenta.find(
+      (producto) => producto.Cantidad > producto.Stock
+    );
+
+    if (productoSinStock) {
+      return `La cantidad de ${productoSinStock.Nombre} supera el stock disponible.`;
     }
 
-    if (metodoPago === "Efectivo" && montoEfectivoNumerico <= 0) {
-      setMensaje("Debes ingresar el monto pagado en efectivo.");
-      return;
+    if (!metodoPago) {
+      return "Debes seleccionar un método de pago.";
     }
 
-    if (metodoPago === "Transferencia" && montoTransferenciaNumerico <= 0) {
-      setMensaje("Debes ingresar el monto pagado por transferencia.");
-      return;
-    }
-
-    if (metodoPago === "Mixto") {
-      if (montoEfectivoNumerico <= 0 || montoTransferenciaNumerico <= 0) {
-        setMensaje(
-          "Para pago mixto debes ingresar monto en efectivo y monto por transferencia."
-        );
-        return;
+    if (tipoCliente !== "generico") {
+      if (!nombresCliente.trim() || !apellidosCliente.trim()) {
+        return "Debes ingresar nombres y apellidos del cliente.";
       }
     }
 
-    if (totalPagado < total) {
-      setMensaje("El monto pagado no cubre el total de la venta.");
+    if (tipoCliente === "delivery") {
+      if (!telefonoCliente.trim()) {
+        return "Debes ingresar el teléfono del cliente para delivery.";
+      }
+
+      if (!direccionCliente.trim()) {
+        return "Debes ingresar la dirección exacta para delivery.";
+      }
+
+      if (!departamentoCliente) {
+        return "Debes seleccionar el departamento para delivery.";
+      }
+
+      if (costoDeliveryNumerico <= 0) {
+        return "El costo de delivery debe ser mayor que cero.";
+      }
+    }
+
+    if (total <= 0) {
+      return "El total de la venta debe ser mayor que cero.";
+    }
+
+    return "";
+  };
+
+  const construirPayload = () => {
+    const payload = {
+      ID_Empleado: ID_EMPLEADO_TEMPORAL,
+      CostoDelivery:
+        tipoCliente === "delivery" ? costoDeliveryNumerico : null,
+      ObservacionRecibo:
+        notas.trim() || "Recibo generado automáticamente desde NuevaVenta.",
+      productos: productosVenta.map((producto) => ({
+        ID_Producto: producto.ID_Producto,
+        Cantidad: producto.Cantidad,
+        PrecioUnitario: producto.PrecioUnitario,
+      })),
+      pagos: [
+        {
+          Tipo_pago: Number(metodoPago),
+          Monto: total,
+          Referencia: referenciaPago.trim() || null,
+        },
+      ],
+    };
+
+    if (tipoCliente !== "generico") {
+      payload.cliente = {
+        Nombres: nombresCliente.trim(),
+        Apellidos: apellidosCliente.trim(),
+        NumeroTelefono:
+          tipoCliente === "delivery" ? telefonoCliente.trim() : null,
+        Direccion:
+          tipoCliente === "delivery" ? direccionCliente.trim() : null,
+        ID_Departamento:
+          tipoCliente === "delivery" ? Number(departamentoCliente) : null,
+      };
+    }
+
+    return payload;
+  };
+
+  const finalizarVenta = async () => {
+    setMensaje("");
+
+    const errorValidacion = validarVenta();
+
+    if (errorValidacion) {
+      mostrarMensaje(errorValidacion, "error");
       return;
     }
 
-    setMensaje("Venta finalizada correctamente. Datos guardados localmente.");
+    setRegistrandoVenta(true);
+
+    try {
+      const respuesta = await registrarVentaCompleta(construirPayload());
+
+      setProductosVenta([]);
+      setBusqueda("");
+      setReferenciaPago("");
+      setNotas("");
+      await cargarDatosIniciales();
+
+      mostrarMensaje(
+        `${respuesta.mensaje} Venta #${respuesta.ID_Venta}. Total: ${formatearDinero(
+          respuesta.TotalVenta
+        )}. Recibo generado: ${respuesta.ReciboGenerado ? "sí" : "no"}.`,
+        "success"
+      );
+    } catch (error) {
+      mostrarMensaje(
+        error.message ||
+          "No se pudo registrar la venta. Revisa los datos e intenta nuevamente.",
+        "error"
+      );
+    } finally {
+      setRegistrandoVenta(false);
+    }
   };
 
   return (
@@ -277,13 +385,12 @@ function NuevaVenta() {
 
       <div className="nueva-venta-datos">
         <div className="campo-grupo">
-          <label>Cliente</label>
-          <input
-            type="text"
-            placeholder="Buscar por nombre"
-            value={cliente}
-            onChange={manejarCliente}
-          />
+          <label>Tipo de cliente</label>
+          <select value={tipoCliente} onChange={manejarTipoCliente}>
+            <option value="generico">Sin datos personales</option>
+            <option value="nombre">Nombre en recibo</option>
+            <option value="delivery">Delivery</option>
+          </select>
         </div>
 
         <div className="campo-grupo">
@@ -300,12 +407,93 @@ function NuevaVenta() {
           <label>Método de pago</label>
           <select value={metodoPago} onChange={manejarMetodoPago}>
             <option value="">Seleccionar método</option>
-            <option value="Efectivo">Efectivo</option>
-            <option value="Transferencia">Transferencia</option>
-            <option value="Mixto">Efectivo + Transferencia</option>
+            {tiposPago.map((tipoPago) => (
+              <option key={tipoPago.Tipo_pago} value={tipoPago.Tipo_pago}>
+                {tipoPago.NombrePago}
+              </option>
+            ))}
           </select>
         </div>
       </div>
+
+      {tipoCliente !== "generico" && (
+        <div className="nueva-venta-datos datos-cliente-venta">
+          <div className="campo-grupo">
+            <label>Nombres</label>
+            <input
+              type="text"
+              placeholder="Nombres del cliente"
+              value={nombresCliente}
+              onChange={manejarTextoCliente(setNombresCliente)}
+            />
+          </div>
+
+          <div className="campo-grupo">
+            <label>Apellidos</label>
+            <input
+              type="text"
+              placeholder="Apellidos del cliente"
+              value={apellidosCliente}
+              onChange={manejarTextoCliente(setApellidosCliente)}
+            />
+          </div>
+
+          {tipoCliente === "delivery" && (
+            <div className="campo-grupo">
+              <label>Teléfono</label>
+              <input
+                type="tel"
+                placeholder="Número de teléfono"
+                value={telefonoCliente}
+                onChange={(e) => setTelefonoCliente(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {tipoCliente === "delivery" && (
+        <div className="nueva-venta-datos datos-cliente-venta">
+          <div className="campo-grupo">
+            <label>Dirección</label>
+            <input
+              type="text"
+              placeholder="Dirección exacta"
+              value={direccionCliente}
+              onChange={(e) => setDireccionCliente(e.target.value)}
+            />
+          </div>
+
+          <div className="campo-grupo">
+            <label>Departamento</label>
+            <select
+              value={departamentoCliente}
+              onChange={(e) => setDepartamentoCliente(e.target.value)}
+            >
+              <option value="">Seleccionar departamento</option>
+              {departamentos.map((departamento) => (
+                <option
+                  key={departamento.ID_Departamento}
+                  value={departamento.ID_Departamento}
+                >
+                  {departamento.Departamento}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="campo-grupo">
+            <label>Costo delivery</label>
+            <input
+              type="number"
+              min="0"
+              placeholder="0.00"
+              value={costoDelivery}
+              onChange={(e) => setCostoDelivery(e.target.value)}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="nueva-venta-contenido">
         <article className="panel-venta panel-productos">
@@ -320,7 +508,9 @@ function NuevaVenta() {
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
             />
-            <button type="button">Filtrar</button>
+            <button type="button" onClick={cargarDatosIniciales}>
+              Actualizar
+            </button>
           </div>
 
           <div className="tabla-contenedor tabla-productos-disponibles">
@@ -335,26 +525,34 @@ function NuevaVenta() {
               </thead>
 
               <tbody>
-                {productosFiltrados.map((producto) => (
-                  <tr key={producto.id}>
-                    <td>
-                      <strong>{producto.nombre}</strong>
-                    </td>
-                    <td>{formatearDinero(producto.precio)}</td>
-                    <td>{producto.stock}</td>
-                    <td>
-                      <button
-                        className="btn-agregar"
-                        type="button"
-                        onClick={() => agregarProducto(producto)}
-                      >
-                        + Agregar
-                      </button>
+                {cargandoDatos ? (
+                  <tr>
+                    <td colSpan="4" className="sin-datos">
+                      Cargando productos...
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  productosFiltrados.map((producto) => (
+                    <tr key={producto.ID_Producto}>
+                      <td>
+                        <strong>{producto.Nombre}</strong>
+                      </td>
+                      <td>{formatearDinero(producto.PrecioUnitario || 0)}</td>
+                      <td>{producto.Stock}</td>
+                      <td>
+                        <button
+                          className="btn-agregar"
+                          type="button"
+                          onClick={() => agregarProducto(producto)}
+                        >
+                          + Agregar
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
 
-                {productosFiltrados.length === 0 && (
+                {!cargandoDatos && productosFiltrados.length === 0 && (
                   <tr>
                     <td colSpan="4" className="sin-datos">
                       No se encontraron productos.
@@ -396,36 +594,42 @@ function NuevaVenta() {
 
                 <tbody>
                   {productosVenta.map((producto) => (
-                    <tr key={producto.id}>
+                    <tr key={producto.ID_Producto}>
                       <td>
-                        <strong>{producto.nombre}</strong>
+                        <strong>{producto.Nombre}</strong>
                       </td>
-                      <td>{formatearDinero(producto.precio)}</td>
+                      <td>{formatearDinero(producto.PrecioUnitario)}</td>
                       <td>
                         <div className="control-cantidad">
                           <button
                             type="button"
-                            onClick={() => disminuirCantidad(producto.id)}
+                            onClick={() =>
+                              disminuirCantidad(producto.ID_Producto)
+                            }
                           >
                             -
                           </button>
-                          <span>{producto.cantidad}</span>
+                          <span>{producto.Cantidad}</span>
                           <button
                             type="button"
-                            onClick={() => aumentarCantidad(producto.id)}
+                            onClick={() =>
+                              aumentarCantidad(producto.ID_Producto)
+                            }
                           >
                             +
                           </button>
                         </div>
                       </td>
                       <td>
-                        {formatearDinero(producto.precio * producto.cantidad)}
+                        {formatearDinero(
+                          producto.PrecioUnitario * producto.Cantidad
+                        )}
                       </td>
                       <td>
                         <button
                           className="btn-eliminar"
                           type="button"
-                          onClick={() => eliminarProducto(producto.id)}
+                          onClick={() => eliminarProducto(producto.ID_Producto)}
                         >
                           ×
                         </button>
@@ -450,27 +654,13 @@ function NuevaVenta() {
 
             <div className="resumen-cuerpo">
               <div className="resumen-linea">
-                <span>Subtotal</span>
-                <strong>{formatearDinero(subtotal)}</strong>
+                <span>Total productos</span>
+                <strong>{formatearDinero(totalProductos)}</strong>
               </div>
 
               <div className="resumen-linea">
-                <span>Descuento</span>
-                <div className="descuento-control">
-                  <input
-                    type="number"
-                    min="0"
-                    value={descuento}
-                    placeholder="0.00"
-                    onChange={(e) => setDescuento(e.target.value)}
-                  />
-                  <span>C$</span>
-                </div>
-              </div>
-
-              <div className="resumen-linea">
-                <span>Impuestos (15%)</span>
-                <strong>{formatearDinero(impuesto)}</strong>
+                <span>Delivery</span>
+                <strong>{formatearDinero(costoDeliveryNumerico)}</strong>
               </div>
 
               <div className="resumen-total">
@@ -482,46 +672,29 @@ function NuevaVenta() {
                 <div className="bloque-pago">
                   <h3>Detalle del pago</h3>
 
-                  {(metodoPago === "Efectivo" || metodoPago === "Mixto") && (
+                  <div className="campo-pago">
+                    <label>Monto a cobrar</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={total}
+                      readOnly
+                    />
+                  </div>
+
+                  {tiposPago.find(
+                    (tipoPago) => String(tipoPago.Tipo_pago) === metodoPago
+                  )?.NombrePago === "Transferencia" && (
                     <div className="campo-pago">
-                      <label>Monto en efectivo</label>
+                      <label>Referencia</label>
                       <input
-                        type="number"
-                        min="0"
-                        placeholder="0.00"
-                        value={montoEfectivo}
-                        onChange={(e) => setMontoEfectivo(e.target.value)}
+                        type="text"
+                        placeholder="Referencia opcional"
+                        value={referenciaPago}
+                        onChange={(e) => setReferenciaPago(e.target.value)}
                       />
                     </div>
                   )}
-
-                  {(metodoPago === "Transferencia" ||
-                    metodoPago === "Mixto") && (
-                    <div className="campo-pago">
-                      <label>Monto por transferencia</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0.00"
-                        value={montoTransferencia}
-                        onChange={(e) =>
-                          setMontoTransferencia(e.target.value)
-                        }
-                      />
-                    </div>
-                  )}
-
-                  <div className="resumen-linea total-pagado">
-                    <span>Total pagado</span>
-                    <strong>{formatearDinero(totalPagado)}</strong>
-                  </div>
-
-                  <div className="resumen-linea">
-                    <span>
-                      {diferenciaPago > 0 ? "Falta por pagar" : "Cambio"}
-                    </span>
-                    <strong>{formatearDinero(Math.abs(diferenciaPago))}</strong>
-                  </div>
                 </div>
               )}
 
@@ -534,7 +707,11 @@ function NuevaVenta() {
                 ></textarea>
               </div>
 
-              {mensaje && <p className="mensaje-venta">{mensaje}</p>}
+              {mensaje && (
+                <p className={`mensaje-venta mensaje-${tipoMensaje}`}>
+                  {mensaje}
+                </p>
+              )}
             </div>
 
             <div className="acciones-venta">
@@ -542,6 +719,7 @@ function NuevaVenta() {
                 type="button"
                 className="btn-cancelar"
                 onClick={vaciarVenta}
+                disabled={registrandoVenta}
               >
                 Cancelar venta
               </button>
@@ -550,8 +728,9 @@ function NuevaVenta() {
                 type="button"
                 className="btn-finalizar"
                 onClick={finalizarVenta}
+                disabled={registrandoVenta}
               >
-                Finalizar venta
+                {registrandoVenta ? "Registrando..." : "Finalizar venta"}
               </button>
             </div>
           </article>

@@ -1,5 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
+from decimal import Decimal
 
 
 class ProductoBase(BaseModel):
@@ -26,5 +27,6 @@ class ProductoUpdate(BaseModel):
 
 class ProductoResponse(ProductoBase):
     ID_Producto: int
+    PrecioUnitario: Optional[Decimal] = None
 
     model_config = ConfigDict(from_attributes=True)
