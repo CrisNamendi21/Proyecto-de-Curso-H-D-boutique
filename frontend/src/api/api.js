@@ -88,6 +88,14 @@ export function obtenerDepartamentos() {
   return obtenerDatos("/departamentos/");
 }
 
+export function obtenerMunicipios() {
+  return obtenerDatos("/municipios/");
+}
+
+export function obtenerMunicipiosPorDepartamento(idDepartamento) {
+  return obtenerDatos(`/municipios/departamento/${idDepartamento}`);
+}
+
 export function registrarVentaCompleta(datos) {
   return enviarDatos("/ventas/registrar-completa", datos);
 }

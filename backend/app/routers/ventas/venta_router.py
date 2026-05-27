@@ -21,6 +21,7 @@ from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
 from app.models.clientes.direccion_cliente_model import DireccionCliente
 from app.models.productos.producto_model import Producto
 from app.models.catalogos.departamento_model import Departamento
+from app.models.catalogos.municipio_model import Municipio
 
 router = APIRouter(
     prefix="/ventas",
@@ -116,6 +117,12 @@ def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
                 detail="Para ventas con delivery debes enviar el departamento del cliente."
             )
 
+        if datos_cliente.ID_Municipio is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Para ventas con delivery debes enviar el municipio del cliente."
+            )
+
         departamento = db.query(Departamento).filter(
             Departamento.ID_Departamento == datos_cliente.ID_Departamento
         ).first()
@@ -124,6 +131,22 @@ def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
             raise HTTPException(
                 status_code=404,
                 detail="Departamento no encontrado"
+            )
+
+        municipio = db.query(Municipio).filter(
+            Municipio.ID_Municipio == datos_cliente.ID_Municipio
+        ).first()
+
+        if not municipio:
+            raise HTTPException(
+                status_code=404,
+                detail="Municipio no encontrado"
+            )
+
+        if municipio.ID_Departamento != datos_cliente.ID_Departamento:
+            raise HTTPException(
+                status_code=400,
+                detail="El municipio seleccionado no pertenece al departamento indicado."
             )
 
         id_departamento = datos_cliente.ID_Departamento

@@ -22,6 +22,23 @@ def listar_municipios(db: Session = Depends(get_db)):
     return db.query(Municipio).all()
 
 
+@router.get("/departamento/{id_departamento}", response_model=list[MunicipioResponse])
+def listar_municipios_por_departamento(
+    id_departamento: int,
+    db: Session = Depends(get_db)
+):
+    departamento = db.query(Departamento).filter(
+        Departamento.ID_Departamento == id_departamento
+    ).first()
+
+    if not departamento:
+        raise HTTPException(status_code=404, detail="Departamento no encontrado")
+
+    return db.query(Municipio).filter(
+        Municipio.ID_Departamento == id_departamento
+    ).all()
+
+
 @router.get("/{id_municipio}", response_model=MunicipioResponse)
 def obtener_municipio(id_municipio: int, db: Session = Depends(get_db)):
     municipio = db.query(Municipio).filter(

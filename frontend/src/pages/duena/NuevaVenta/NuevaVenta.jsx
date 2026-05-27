@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   obtenerDepartamentos,
+  obtenerMunicipiosPorDepartamento,
   obtenerProductos,
   obtenerTiposPago,
   registrarVentaCompleta,
@@ -20,7 +21,9 @@ function NuevaVenta() {
   const [productos, setProductos] = useState([]);
   const [tiposPago, setTiposPago] = useState([]);
   const [departamentos, setDepartamentos] = useState([]);
+  const [municipios, setMunicipios] = useState([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
+  const [cargandoMunicipios, setCargandoMunicipios] = useState(false);
   const [registrandoVenta, setRegistrandoVenta] = useState(false);
 
   const [tipoCliente, setTipoCliente] = useState("generico");
@@ -29,9 +32,12 @@ function NuevaVenta() {
   const [telefonoCliente, setTelefonoCliente] = useState("");
   const [direccionCliente, setDireccionCliente] = useState("");
   const [departamentoCliente, setDepartamentoCliente] = useState("");
+  const [municipioCliente, setMunicipioCliente] = useState("");
   const [fecha, setFecha] = useState(obtenerFechaActual());
   const [metodoPago, setMetodoPago] = useState("");
   const [referenciaPago, setReferenciaPago] = useState("");
+  const [montoEfectivo, setMontoEfectivo] = useState("");
+  const [montoTransferencia, setMontoTransferencia] = useState("");
   const [costoDelivery, setCostoDelivery] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [productosVenta, setProductosVenta] = useState([]);
@@ -49,6 +55,14 @@ function NuevaVenta() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+  };
+
+  const convertirACentavos = (valor) => Math.round((Number(valor) || 0) * 100);
+
+  const obtenerTipoPagoPorNombre = (nombre) => {
+    return tiposPago.find((tipoPago) =>
+      tipoPago.NombrePago.toLowerCase().includes(nombre)
+    );
   };
 
   const cargarDatosIniciales = async () => {
@@ -80,6 +94,36 @@ function NuevaVenta() {
     cargarDatosIniciales();
   }, []);
 
+  useEffect(() => {
+    const cargarMunicipios = async () => {
+      if (tipoCliente !== "delivery" || !departamentoCliente) {
+        setMunicipios([]);
+        setMunicipioCliente("");
+        return;
+      }
+
+      setCargandoMunicipios(true);
+
+      try {
+        const municipiosRespuesta = await obtenerMunicipiosPorDepartamento(
+          departamentoCliente
+        );
+
+        setMunicipios(municipiosRespuesta);
+      } catch (error) {
+        setMunicipios([]);
+        mostrarMensaje(
+          error.message || "No se pudieron cargar los municipios.",
+          "error"
+        );
+      } finally {
+        setCargandoMunicipios(false);
+      }
+    };
+
+    cargarMunicipios();
+  }, [departamentoCliente, tipoCliente]);
+
   const manejarTextoCliente = (setter) => (e) => {
     const valor = e.target.value;
 
@@ -91,6 +135,14 @@ function NuevaVenta() {
   const manejarMetodoPago = (e) => {
     setMetodoPago(e.target.value);
     setReferenciaPago("");
+    setMontoEfectivo("");
+    setMontoTransferencia("");
+    setMensaje("");
+  };
+
+  const manejarDepartamentoCliente = (e) => {
+    setDepartamentoCliente(e.target.value);
+    setMunicipioCliente("");
     setMensaje("");
   };
 
@@ -103,6 +155,8 @@ function NuevaVenta() {
     setTelefonoCliente("");
     setDireccionCliente("");
     setDepartamentoCliente("");
+    setMunicipioCliente("");
+    setMunicipios([]);
     setCostoDelivery("");
     setMensaje("");
   };
@@ -191,11 +245,19 @@ function NuevaVenta() {
     setMensaje("");
 
     setProductosVenta(
-      productosVenta.map((item) =>
-        item.ID_Producto === idProducto && item.Cantidad > 1
-          ? { ...item, Cantidad: item.Cantidad - 1 }
-          : item
-      )
+      productosVenta
+        .map((item) => {
+          if (item.ID_Producto !== idProducto) {
+            return item;
+          }
+
+          if (item.Cantidad > 1) {
+            return { ...item, Cantidad: item.Cantidad - 1 };
+          }
+
+          return null;
+        })
+        .filter(Boolean)
     );
   };
 
@@ -217,9 +279,13 @@ function NuevaVenta() {
     setTelefonoCliente("");
     setDireccionCliente("");
     setDepartamentoCliente("");
+    setMunicipioCliente("");
+    setMunicipios([]);
     setFecha(obtenerFechaActual());
     setMetodoPago("");
     setReferenciaPago("");
+    setMontoEfectivo("");
+    setMontoTransferencia("");
     setCostoDelivery("");
     setBusqueda("");
     setProductosVenta([]);
@@ -237,6 +303,45 @@ function NuevaVenta() {
   const costoDeliveryNumerico =
     tipoCliente === "delivery" ? Number(costoDelivery) || 0 : 0;
   const total = totalProductos + costoDeliveryNumerico;
+  const tipoPagoEfectivo = obtenerTipoPagoPorNombre("efectivo");
+  const tipoPagoTransferencia = obtenerTipoPagoPorNombre("transferencia");
+  const esPagoMixto = metodoPago === "mixto";
+  const esPagoTransferencia =
+    metodoPago === String(tipoPagoTransferencia?.Tipo_pago);
+  const montoEfectivoNumerico = Number(montoEfectivo) || 0;
+  const montoTransferenciaNumerico = Number(montoTransferencia) || 0;
+
+  const construirPagos = () => {
+    if (esPagoMixto) {
+      const pagos = [];
+
+      if (montoEfectivoNumerico > 0) {
+        pagos.push({
+          Tipo_pago: tipoPagoEfectivo.Tipo_pago,
+          Monto: montoEfectivoNumerico,
+          Referencia: null,
+        });
+      }
+
+      if (montoTransferenciaNumerico > 0) {
+        pagos.push({
+          Tipo_pago: tipoPagoTransferencia.Tipo_pago,
+          Monto: montoTransferenciaNumerico,
+          Referencia: referenciaPago.trim() || null,
+        });
+      }
+
+      return pagos;
+    }
+
+    return [
+      {
+        Tipo_pago: Number(metodoPago),
+        Monto: total,
+        Referencia: esPagoTransferencia ? referenciaPago.trim() || null : null,
+      },
+    ];
+  };
 
   const validarVenta = () => {
     if (!fecha) {
@@ -271,6 +376,31 @@ function NuevaVenta() {
       return "Debes seleccionar un método de pago.";
     }
 
+    if (total <= 0) {
+      return "El total de la venta debe ser mayor que cero.";
+    }
+
+    if (esPagoMixto) {
+      if (!tipoPagoEfectivo || !tipoPagoTransferencia) {
+        return "No se encontraron los tipos de pago Efectivo y Transferencia.";
+      }
+
+      if (montoEfectivoNumerico < 0 || montoTransferenciaNumerico < 0) {
+        return "Los montos del pago mixto no pueden ser negativos.";
+      }
+
+      if (montoEfectivoNumerico <= 0 && montoTransferenciaNumerico <= 0) {
+        return "Debes ingresar al menos un monto para el pago mixto.";
+      }
+
+      if (
+        convertirACentavos(montoEfectivoNumerico + montoTransferenciaNumerico) !==
+        convertirACentavos(total)
+      ) {
+        return "La suma del pago en efectivo y transferencia debe coincidir con el total a pagar.";
+      }
+    }
+
     if (tipoCliente !== "generico") {
       if (!nombresCliente.trim() || !apellidosCliente.trim()) {
         return "Debes ingresar nombres y apellidos del cliente.";
@@ -290,13 +420,13 @@ function NuevaVenta() {
         return "Debes seleccionar el departamento para delivery.";
       }
 
+      if (!municipioCliente) {
+        return "Debes seleccionar el municipio para delivery.";
+      }
+
       if (costoDeliveryNumerico <= 0) {
         return "El costo de delivery debe ser mayor que cero.";
       }
-    }
-
-    if (total <= 0) {
-      return "El total de la venta debe ser mayor que cero.";
     }
 
     return "";
@@ -314,13 +444,7 @@ function NuevaVenta() {
         Cantidad: producto.Cantidad,
         PrecioUnitario: producto.PrecioUnitario,
       })),
-      pagos: [
-        {
-          Tipo_pago: Number(metodoPago),
-          Monto: total,
-          Referencia: referenciaPago.trim() || null,
-        },
-      ],
+      pagos: construirPagos(),
     };
 
     if (tipoCliente !== "generico") {
@@ -333,6 +457,8 @@ function NuevaVenta() {
           tipoCliente === "delivery" ? direccionCliente.trim() : null,
         ID_Departamento:
           tipoCliente === "delivery" ? Number(departamentoCliente) : null,
+        ID_Municipio:
+          tipoCliente === "delivery" ? Number(municipioCliente) : null,
       };
     }
 
@@ -412,6 +538,7 @@ function NuevaVenta() {
                 {tipoPago.NombrePago}
               </option>
             ))}
+            <option value="mixto">Mixto</option>
           </select>
         </div>
       </div>
@@ -468,7 +595,7 @@ function NuevaVenta() {
             <label>Departamento</label>
             <select
               value={departamentoCliente}
-              onChange={(e) => setDepartamentoCliente(e.target.value)}
+              onChange={manejarDepartamentoCliente}
             >
               <option value="">Seleccionar departamento</option>
               {departamentos.map((departamento) => (
@@ -480,6 +607,35 @@ function NuevaVenta() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="campo-grupo">
+            <label>Municipio</label>
+            <select
+              value={municipioCliente}
+              onChange={(e) => setMunicipioCliente(e.target.value)}
+              disabled={!departamentoCliente || cargandoMunicipios}
+            >
+              <option value="">
+                {cargandoMunicipios
+                  ? "Cargando municipios..."
+                  : "Seleccionar municipio"}
+              </option>
+              {municipios.map((municipio) => (
+                <option
+                  key={municipio.ID_Municipio}
+                  value={municipio.ID_Municipio}
+                >
+                  {municipio.Municipio}
+                </option>
+              ))}
+            </select>
+
+            {departamentoCliente && !cargandoMunicipios && municipios.length === 0 && (
+              <p className="ayuda-campo">
+                No hay municipios disponibles para este departamento.
+              </p>
+            )}
           </div>
 
           <div className="campo-grupo">
@@ -672,21 +828,60 @@ function NuevaVenta() {
                 <div className="bloque-pago">
                   <h3>Detalle del pago</h3>
 
-                  <div className="campo-pago">
-                    <label>Monto a cobrar</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={total}
-                      readOnly
-                    />
-                  </div>
+                  {esPagoMixto ? (
+                    <>
+                      <div className="campo-pago">
+                        <label>Monto en efectivo</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={montoEfectivo}
+                          onChange={(e) => setMontoEfectivo(e.target.value)}
+                        />
+                      </div>
 
-                  {tiposPago.find(
-                    (tipoPago) => String(tipoPago.Tipo_pago) === metodoPago
-                  )?.NombrePago === "Transferencia" && (
+                      <div className="campo-pago">
+                        <label>Monto en transferencia</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={montoTransferencia}
+                          onChange={(e) =>
+                            setMontoTransferencia(e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="campo-pago total-pagado">
+                        <label>Total pagado</label>
+                        <input
+                          type="text"
+                          value={formatearDinero(
+                            montoEfectivoNumerico + montoTransferenciaNumerico
+                          )}
+                          readOnly
+                        />
+                      </div>
+                    </>
+                  ) : (
                     <div className="campo-pago">
-                      <label>Referencia</label>
+                      <label>Monto a cobrar</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={total}
+                        readOnly
+                      />
+                    </div>
+                  )}
+
+                  {(esPagoTransferencia || esPagoMixto) && (
+                    <div className="campo-pago">
+                      <label>Referencia de transferencia</label>
                       <input
                         type="text"
                         placeholder="Referencia opcional"

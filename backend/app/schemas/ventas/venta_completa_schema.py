@@ -22,6 +22,7 @@ class ClienteVentaCompleta(BaseModel):
     NumeroTelefono: Optional[str] = None
     Direccion: Optional[str] = None
     ID_Departamento: Optional[int] = None
+    ID_Municipio: Optional[int] = None
 
 
 class VentaCompletaCreate(BaseModel):
