@@ -40,6 +40,7 @@ from app.routers.ventas.pago_venta_router import router as pago_venta_router
 #Modulo 5
 from app.routers.devoluciones.devolucion_router import router as devolucion_router
 from app.routers.devoluciones.detalle_devolucion_router import router as detalle_devolucion_router
+from app.routers.dashboard.dashboard_router import router as dashboard_router
 
 
 app = FastAPI(
@@ -95,6 +96,7 @@ app.include_router(pago_venta_router)
 #modulo 5
 app.include_router(devolucion_router)
 app.include_router(detalle_devolucion_router)
+app.include_router(dashboard_router)
 
 @app.get("/")
 def inicio():

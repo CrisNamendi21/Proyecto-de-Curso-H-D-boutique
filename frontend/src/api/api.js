@@ -91,3 +91,7 @@ export function obtenerDepartamentos() {
 export function registrarVentaCompleta(datos) {
   return enviarDatos("/ventas/registrar-completa", datos);
 }
+
+export function obtenerDashboard() {
+  return obtenerDatos("/dashboard/");
+}

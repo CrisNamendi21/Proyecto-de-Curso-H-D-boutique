@@ -21,3 +21,6 @@ __pycache__/
 #Archivo de bloqueo creado por uv, herramienta moderna para
 #manejar dependencias de python
 **/uv.lock
+
+#Carpetas codex
+**/.idea

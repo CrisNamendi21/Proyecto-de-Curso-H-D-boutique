@@ -147,17 +147,6 @@
   color: #0f2f3a;
 }
 
-.quick-top-btn {
-  border: none;
-  background: #ec3f7c;
-  color: white;
-  padding: 14px 24px;
-  border-radius: 10px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 12px 24px rgba(236, 63, 124, 0.25);
-}
-
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -293,6 +282,33 @@
   color: #30484f;
 }
 
+.dashboard-estado,
+.dashboard-error {
+  margin: -8px 0 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dashboard-estado {
+  background: #fffdf8;
+  border: 1px solid #f5b6cf;
+  color: #34484f;
+}
+
+.dashboard-error {
+  background: #fff0f3;
+  border: 1px solid #ec3f7c;
+  color: #9f1f4c;
+}
+
+.sin-ventas-dashboard {
+  text-align: center;
+  color: #6c6267;
+  font-weight: 600;
+}
+
 /* VISTAS INTERNAS */
 
 .vista-modulo {
@@ -313,123 +329,4 @@
   margin-top: 14px;
   color: #6c6267;
   font-size: 16px;
-}
-
-/* MODAL VENTA FLASH */
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 47, 58, 0.35);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 200;
-}
-
-.modal-content {
-  width: 650px;
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  border: 1px solid #f5b6cf;
-  box-shadow: 0 20px 45px rgba(15, 47, 58, 0.25);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #0f2f3a;
-  font-size: 22px;
-}
-
-.close-btn {
-  border: none;
-  background: transparent;
-  color: #ec3f7c;
-  font-size: 28px;
-  cursor: pointer;
-}
-
-.sale-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.form-group label {
-  color: #0f2f3a;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  border: 1px solid #f5b6cf;
-  border-radius: 9px;
-  padding: 11px;
-  outline: none;
-  background: #fffafd;
-  color: #0f2f3a;
-  font-size: 14px;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  border-color: #ec3f7c;
-}
-
-.full-width {
-  grid-column: 1 / 3;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.btn-secondary {
-  background: white;
-  color: #ec3f7c;
-  border: 1px solid #f5a8c8;
-  padding: 12px 24px;
-  border-radius: 9px;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.btn-primary {
-  background: #ec3f7c;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 9px;
-  cursor: pointer;
-  font-weight: 700;
-  box-shadow: 0 10px 22px rgba(236, 63, 124, 0.25);
 }

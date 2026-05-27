@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { obtenerDashboard } from "../../../api/api";
 import "./DashboardDuena.css";
 
 import Productos from "../Productos/Productos";
@@ -7,64 +8,98 @@ import Clientes from "../Clientes/Clientes";
 import Empleados from "../Empleados/Empleados";
 import Compras from "../Compras/Compras";
 //parte de cris en el frontend//
-import NuevaVenta from "../NuevaVenta/NuevaVenta"
-import Ventas from "../Ventas/Ventas"
-import Recibos from "../Recibos/Recibos"
+import NuevaVenta from "../NuevaVenta/NuevaVenta";
+import Ventas from "../Ventas/Ventas";
+import Recibos from "../Recibos/Recibos";
 
 
-// import NuevaVenta from "./pages/duena/NuevaVenta/NuevaVenta";
-// import Ventas from "./pages/duena/Ventas/Ventas";
-// import Recibos from "./pages/duena/Recibos/Recibos";
+const resumenInicial = {
+  ventas_dia: 0,
+  cantidad_ventas_dia: 0,
+  ventas_mes: 0,
+  cantidad_ventas_mes: 0,
+  stock_bajo: 0,
+  productos_vendidos_mes: 0,
+};
 
+const ventasSemanalesIniciales = [
+  { dia: "Lun", total: 0 },
+  { dia: "Mar", total: 0 },
+  { dia: "Mié", total: 0 },
+  { dia: "Jue", total: 0 },
+  { dia: "Vie", total: 0 },
+  { dia: "Sáb", total: 0 },
+  { dia: "Dom", total: 0 },
+];
+
+function formatearMoneda(valor) {
+  const numero = Number(valor) || 0;
+
+  return `C$ ${numero.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatearFecha(fecha) {
+  if (!fecha) {
+    return "-";
+  }
+
+  const [anio, mes, dia] = fecha.split("-");
+
+  if (!anio || !mes || !dia) {
+    return fecha;
+  }
+
+  return `${dia}/${mes}/${anio}`;
+}
 
 function DashboardDuena({ setRol }) {
   const [vistaActual, setVistaActual] = useState("dashboard");
-  const [mostrarModalVentaFlash, setMostrarModalVentaFlash] = useState(false);
+  const [dashboard, setDashboard] = useState(null);
+  const [cargandoDashboard, setCargandoDashboard] = useState(true);
+  const [errorDashboard, setErrorDashboard] = useState("");
 
-  const [clienteVentaFlash, setClienteVentaFlash] = useState("");
-  const [fechaVentaFlash, setFechaVentaFlash] = useState("");
+  const cargarDashboard = async () => {
+    try {
+      setCargandoDashboard(true);
+      setErrorDashboard("");
 
-  const obtenerFechaActual = () => {
-    const hoy = new Date();
-    const diferenciaZona = hoy.getTimezoneOffset() * 60000;
-    const fechaLocal = new Date(hoy.getTime() - diferenciaZona);
-    return fechaLocal.toISOString().split("T")[0];
+      const datos = await obtenerDashboard();
+      setDashboard(datos);
+    } catch (error) {
+      console.error("Error al cargar dashboard:", error);
+      setErrorDashboard("No se pudieron cargar los datos del dashboard.");
+    } finally {
+      setCargandoDashboard(false);
+    }
   };
 
-  const manejarClienteVentaFlash = (e) => {
-    const valor = e.target.value;
-    const soloLetras = valor.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "");
-    setClienteVentaFlash(soloLetras);
-  };
+  useEffect(() => {
+    cargarDashboard();
+  }, []);
 
-  const cerrarModalVentaFlash = () => {
-    setMostrarModalVentaFlash(false);
-    setClienteVentaFlash("");
-    setFechaVentaFlash("");
-  };
+  const resumen = dashboard?.resumen || resumenInicial;
+  const ventasSemanales = dashboard?.ventas_semanales || ventasSemanalesIniciales;
+  const ultimasVentas = dashboard?.ultimas_ventas || [];
 
-  const guardarVentaFlash = (e) => {
-    e.preventDefault();
+  const maxVentaSemanal = useMemo(() => {
+    const maximo = Math.max(
+      ...ventasSemanales.map((venta) => Number(venta.total) || 0)
+    );
 
-    const fechaActual = obtenerFechaActual();
+    return maximo > 0 ? maximo : 1;
+  }, [ventasSemanales]);
 
-    if (clienteVentaFlash.trim() === "") {
-      alert("El nombre del cliente es obligatorio y solo debe contener letras.");
-      return;
+  const obtenerAlturaBarra = (total) => {
+    const valor = Number(total) || 0;
+
+    if (valor <= 0) {
+      return "6px";
     }
 
-    if (fechaVentaFlash === "") {
-      alert("Debes seleccionar una fecha.");
-      return;
-    }
-
-    if (fechaVentaFlash < fechaActual) {
-      alert("No puedes seleccionar una fecha anterior a la fecha actual.");
-      return;
-    }
-
-    alert("Venta flash guardada correctamente.");
-    cerrarModalVentaFlash();
+    return `${Math.max((valor / maxVentaSemanal) * 205, 24)}px`;
   };
 
   return (
@@ -145,7 +180,6 @@ function DashboardDuena({ setRol }) {
                 vistaActual === "clientes" ? "menu-item active" : "menu-item"
               }
               onClick={() => setVistaActual("clientes")}
-              
             >
               Clientes
             </button>
@@ -179,40 +213,49 @@ function DashboardDuena({ setRol }) {
               <>
                 <div className="dashboard-header">
                   <h2 className="page-title">Inicio / Dashboard</h2>
-
-                  <button
-                    className="quick-top-btn"
-                    onClick={() => setMostrarModalVentaFlash(true)}
-                  >
-                    + VENTA FLASH
-                  </button>
                 </div>
+
+                {cargandoDashboard && (
+                  <p className="dashboard-estado">
+                    Cargando datos del dashboard...
+                  </p>
+                )}
+
+                {errorDashboard && (
+                  <p className="dashboard-error">{errorDashboard}</p>
+                )}
 
                 <div className="cards-grid">
                   <div className="dashboard-card">
                     <h3>Ventas del día</h3>
-                    <div className="card-main-value">$ 3,250.00</div>
-                    <p>5 ventas</p>
+                    <div className="card-main-value">
+                      {formatearMoneda(resumen.ventas_dia)}
+                    </div>
+                    <p>{resumen.cantidad_ventas_dia} ventas</p>
                     <div className="card-line"></div>
                   </div>
 
                   <div className="dashboard-card">
                     <h3>Ventas del mes</h3>
-                    <div className="card-main-value">$ 42,850.00</div>
-                    <p>86 ventas</p>
+                    <div className="card-main-value">
+                      {formatearMoneda(resumen.ventas_mes)}
+                    </div>
+                    <p>{resumen.cantidad_ventas_mes} ventas</p>
                     <div className="card-line"></div>
                   </div>
 
                   <div className="dashboard-card">
                     <h3>Stock bajo</h3>
-                    <div className="card-main-value">7</div>
-                    <p>Ver productos</p>
+                    <div className="card-main-value">{resumen.stock_bajo}</div>
+                    <p>Productos con stock &lt;= 5</p>
                     <div className="card-line"></div>
                   </div>
 
                   <div className="dashboard-card">
                     <h3>Productos vendidos</h3>
-                    <div className="card-main-value">128</div>
+                    <div className="card-main-value">
+                      {resumen.productos_vendidos_mes}
+                    </div>
                     <p>Este mes</p>
                     <div className="card-line"></div>
                   </div>
@@ -228,35 +271,16 @@ function DashboardDuena({ setRol }) {
 
                     <div className="fake-chart">
                       <div className="chart-area">
-                        <div className="chart-column">
-                          <div className="bar" style={{ height: "72px" }}></div>
-                          <span>Lun</span>
-                        </div>
-
-                        <div className="chart-column">
-                          <div className="bar" style={{ height: "120px" }}></div>
-                          <span>Mar</span>
-                        </div>
-
-                        <div className="chart-column">
-                          <div className="bar" style={{ height: "98px" }}></div>
-                          <span>Mié</span>
-                        </div>
-
-                        <div className="chart-column">
-                          <div className="bar" style={{ height: "152px" }}></div>
-                          <span>Jue</span>
-                        </div>
-
-                        <div className="chart-column">
-                          <div className="bar" style={{ height: "205px" }}></div>
-                          <span>Vie</span>
-                        </div>
-
-                        <div className="chart-column">
-                          <div className="bar" style={{ height: "192px" }}></div>
-                          <span>Sáb</span>
-                        </div>
+                        {ventasSemanales.map((venta) => (
+                          <div className="chart-column" key={venta.dia}>
+                            <div
+                              className="bar"
+                              title={formatearMoneda(venta.total)}
+                              style={{ height: obtenerAlturaBarra(venta.total) }}
+                            ></div>
+                            <span>{venta.dia}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -275,40 +299,22 @@ function DashboardDuena({ setRol }) {
                       </thead>
 
                       <tbody>
-                        <tr>
-                          <td>12/05/2025</td>
-                          <td>María López</td>
-                          <td>Vestido floral</td>
-                          <td>$ 750.00</td>
-                        </tr>
-
-                        <tr>
-                          <td>12/05/2025</td>
-                          <td>Ana Torres</td>
-                          <td>Blusa manga corta</td>
-                          <td>$ 420.00</td>
-                        </tr>
-
-                        <tr>
-                          <td>11/05/2025</td>
-                          <td>Carmen Ruiz</td>
-                          <td>Pantalón lino</td>
-                          <td>$ 680.00</td>
-                        </tr>
-
-                        <tr>
-                          <td>11/05/2025</td>
-                          <td>Laura Gómez</td>
-                          <td>Falda plisada</td>
-                          <td>$ 550.00</td>
-                        </tr>
-
-                        <tr>
-                          <td>11/05/2025</td>
-                          <td>Sofía Ramírez</td>
-                          <td>Top escote</td>
-                          <td>$ 390.00</td>
-                        </tr>
+                        {ultimasVentas.length > 0 ? (
+                          ultimasVentas.map((venta) => (
+                            <tr key={venta.id_venta}>
+                              <td>{formatearFecha(venta.fecha)}</td>
+                              <td>{venta.cliente}</td>
+                              <td>{venta.producto}</td>
+                              <td>{formatearMoneda(venta.total)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td className="sin-ventas-dashboard" colSpan="4">
+                              No hay ventas registradas todavía.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -328,26 +334,23 @@ function DashboardDuena({ setRol }) {
               </div>
             )}
 
-
             {vistaActual === "nuevaVenta" && (
               <div className="vista-modulo">
                 <NuevaVenta />
               </div>
             )}
 
-            
             {vistaActual === "ventas" && (
               <div className="vista-modulo">
                 <Ventas />
               </div>
             )}
-            
+
             {vistaActual === "recibos" && (
               <div className="vista-modulo">
                 <Recibos />
               </div>
             )}
-
 
             {vistaActual === "compras" && (
               <div className="vista-modulo">
@@ -360,110 +363,15 @@ function DashboardDuena({ setRol }) {
                 <Clientes />
               </div>
             )}
-            
-            
+
             {vistaActual === "empleados" && (
               <div className="vista-modulo">
                 <Empleados />
               </div>
             )}
-
-
           </section>
         </main>
       </div>
-
-      {mostrarModalVentaFlash && (
-        <div className="modal-overlay" onClick={cerrarModalVentaFlash}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Venta flash</h3>
-
-              <button className="close-btn" onClick={cerrarModalVentaFlash}>
-                ×
-              </button>
-            </div>
-
-            <form className="sale-form" onSubmit={guardarVentaFlash}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Cliente</label>
-                  <input
-                    type="text"
-                    placeholder="Nombre del cliente"
-                    value={clienteVentaFlash}
-                    onChange={manejarClienteVentaFlash}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Fecha</label>
-                  <input
-                    type="date"
-                    value={fechaVentaFlash}
-                    min={obtenerFechaActual()}
-                    onChange={(e) => setFechaVentaFlash(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Producto</label>
-                  <input type="text" placeholder="Nombre del producto" />
-                </div>
-
-                <div className="form-group">
-                  <label>Cantidad</label>
-                  <input type="number" min="1" placeholder="0" />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Precio unitario</label>
-                  <input type="number" min="0" placeholder="0.00" />
-                </div>
-
-                <div className="form-group">
-                  <label>Método de pago</label>
-                  <select required>
-                    <option value="">Seleccionar</option>
-                    <option value="efectivo">Efectivo</option>
-                    <option value="transferencia">Transferencia</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group full-width">
-                  <label>Observación</label>
-                  <textarea
-                    rows="3"
-                    placeholder="Detalle adicional de la venta"
-                  ></textarea>
-                </div>
-              </div>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={cerrarModalVentaFlash}
-                >
-                  Cancelar
-                </button>
-
-                <button type="submit" className="btn-primary">
-                  Guardar venta flash
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 }
