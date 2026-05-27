@@ -1,28 +1,14 @@
-html,
-body,
-#root {
-  width: 100%;
-  height: 100%;
-}
-
-body {
-  overflow: hidden;
-}
-
 .ventas-page {
-  height: 100vh;
-  max-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100%;
   background: #f8f6f0;
-  padding: 16px 24px 32px;
+  padding: 18px 22px 28px;
   color: #2f2933;
   font-family: "Segoe UI", sans-serif;
   box-sizing: border-box;
-  overflow-y: scroll;
   overflow-x: hidden;
-  scrollbar-gutter: stable;
 }
-
-/* HEADER */
 
 .ventas-header {
   margin-bottom: 12px;
@@ -35,16 +21,36 @@ body {
   color: #2f2933;
 }
 
-/* TARJETAS SUPERIORES */
+.estado-ventas,
+.error-ventas {
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.estado-ventas {
+  background: #ffffff;
+  border: 1px solid #f3d4e2;
+  color: #6e5965;
+}
+
+.error-ventas {
+  background: #fff0f6;
+  border: 1px solid #f8bbd7;
+  color: #b02663;
+}
 
 .ventas-resumen-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 14px;
 }
 
 .venta-card {
+  min-width: 0;
   min-height: 74px;
   background: #ffffff;
   border: 1px solid #f3d4e2;
@@ -53,6 +59,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   box-shadow: 0 6px 18px rgba(248, 187, 215, 0.16);
   box-sizing: border-box;
 }
@@ -67,8 +74,9 @@ body {
 
 .venta-card strong {
   color: #2f2933;
-  font-size: 21px;
+  font-size: clamp(18px, 2vw, 21px);
   font-weight: 800;
+  word-break: break-word;
 }
 
 .card-icono {
@@ -82,22 +90,27 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 22px;
+  flex: 0 0 auto;
 }
 
-/* FILTROS */
-
 .ventas-filtros {
+  width: 100%;
+  max-width: 100%;
   background: #ffffff;
   border: 1px solid #f3d4e2;
   border-radius: 16px;
   padding: 12px 14px;
   display: grid;
-  grid-template-columns: 1fr 1.25fr 1.25fr auto;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(170px, 1.2fr) minmax(170px, 1.1fr) auto;
   gap: 14px;
   align-items: end;
   margin-bottom: 14px;
   box-shadow: 0 6px 18px rgba(248, 187, 215, 0.14);
   box-sizing: border-box;
+}
+
+.filtro-grupo {
+  min-width: 0;
 }
 
 .filtro-grupo label {
@@ -144,30 +157,34 @@ body {
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .acciones-filtros button:hover {
   background: #ffd6e7;
 }
 
-/* CONTENIDO PRINCIPAL */
-
 .ventas-contenido {
+  width: 100%;
+  max-width: 100%;
   display: grid;
-  grid-template-columns: 1.08fr 0.92fr;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
   gap: 14px;
   align-items: start;
-  padding-bottom: 40px;
+  padding-bottom: 24px;
+  box-sizing: border-box;
 }
 
 .ventas-columna-izquierda,
 .ventas-columna-derecha {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
 .panel-ventas {
+  min-width: 0;
   background: #ffffff;
   border: 1px solid #f3d4e2;
   border-radius: 16px;
@@ -187,28 +204,25 @@ body {
   font-weight: 800;
 }
 
-/* LISTADO DE VENTAS */
-
 .listado-ventas {
-  height: 310px;
+  height: 330px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .productos-vendidos {
-  height: 255px;
+  height: 270px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* TABLAS */
-
 .tabla-ventas-contenedor,
 .tabla-productos-vendidos {
   flex: 1;
   min-height: 0;
+  max-width: 100%;
   overflow-y: auto;
   overflow-x: auto;
   padding-right: 5px;
@@ -218,7 +232,14 @@ body {
 .tabla-productos-vendidos table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 650px;
+}
+
+.tabla-ventas-contenedor table {
+  min-width: 610px;
+}
+
+.tabla-productos-vendidos table {
+  min-width: 470px;
 }
 
 .tabla-ventas-contenedor th,
@@ -246,9 +267,8 @@ body {
   text-align: center;
   color: #9b7d8a !important;
   padding: 20px !important;
+  font-weight: 800;
 }
-
-/* BADGES */
 
 .metodo {
   display: inline-block;
@@ -256,6 +276,7 @@ body {
   border-radius: 9px;
   font-size: 11.5px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .efectivo {
@@ -300,42 +321,26 @@ body {
   margin-right: 8px;
 }
 
-/* COLUMNA DERECHA */
-
 .metodo-pago-panel {
-  height: 235px;
-  overflow: hidden;
-}
-
-.ventas-hora-panel {
-  height: 235px;
+  min-height: 255px;
   overflow: hidden;
 }
 
 .resumen-dia-panel {
-  min-height: 210px;
-  margin-bottom: 30px;
+  min-height: 132px;
 }
 
-/* DONA */
-
 .metodo-pago-contenido {
-  height: calc(100% - 28px);
   display: grid;
-  grid-template-columns: 165px 1fr;
-  gap: 16px;
+  grid-template-columns: 145px minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
 }
 
 .grafico-dona {
-  width: 145px;
-  height: 145px;
+  width: 132px;
+  height: 132px;
   border-radius: 50%;
-  background: conic-gradient(
-    #88d47f 0deg 170deg,
-    #8ec5ff 170deg 260deg,
-    #c49af4 260deg 360deg
-  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,8 +350,8 @@ body {
 
 .grafico-dona::after {
   content: "";
-  width: 80px;
-  height: 80px;
+  width: 76px;
+  height: 76px;
   background: #ffffff;
   border-radius: 50%;
   position: absolute;
@@ -367,11 +372,12 @@ body {
 
 .dona-centro strong {
   color: #2f2933;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .lista-metodos {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -379,7 +385,7 @@ body {
 
 .metodo-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 9px;
   align-items: center;
   border-bottom: 1px solid #f8e7ef;
@@ -395,7 +401,8 @@ body {
 
 .metodo-item strong {
   color: #2f2933;
-  font-size: 13px;
+  font-size: 12.5px;
+  white-space: nowrap;
 }
 
 .circulo {
@@ -416,51 +423,12 @@ body {
   background: #c49af4;
 }
 
-/* GRÁFICO DE BARRAS */
-
-.barras-hora {
-  height: calc(100% - 30px);
-  min-height: 120px;
-  display: flex;
-  align-items: end;
-  gap: 9px;
-  border-left: 1px solid #f4d9e5;
-  border-bottom: 1px solid #f4d9e5;
-  padding: 8px 8px 0;
-  box-sizing: border-box;
-}
-
-.barra-item {
-  flex: 1;
-  height: 115px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.barra {
-  width: 18px;
-  min-height: 7px;
-  border-radius: 8px 8px 0 0;
-  background: linear-gradient(180deg, #f8bbd7, #fff0f6);
-  border: 1px solid #ef8dbb;
-}
-
-.barra-item span {
-  margin-top: 6px;
-  color: #6e5965;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-/* RESUMEN DEL DÍA */
-
 .resumen-dia-linea,
 .resumen-dia-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   color: #4a3f47;
   font-size: 13px;
   margin-bottom: 9px;
@@ -482,8 +450,6 @@ body {
   font-size: 16px;
   font-weight: 900;
 }
-
-/* MODAL */
 
 .modal-ventas-fondo {
   position: fixed;
@@ -531,11 +497,12 @@ body {
 
 .detalle-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
 .detalle-grid div {
+  min-width: 0;
   background: #fffafd;
   border: 1px solid #f3d4e2;
   border-radius: 16px;
@@ -553,6 +520,7 @@ body {
 .detalle-grid strong {
   color: #2f2933;
   font-size: 15px;
+  word-break: break-word;
 }
 
 .btn-cerrar-modal {
@@ -566,8 +534,6 @@ body {
   font-weight: 900;
   cursor: pointer;
 }
-
-/* SCROLL GENERAL Y SCROLLS INTERNOS */
 
 .ventas-page::-webkit-scrollbar,
 .tabla-ventas-contenedor::-webkit-scrollbar,
@@ -596,58 +562,21 @@ body {
   background: #d62b75;
 }
 
-/* RESPONSIVE */
-
-@media (max-width: 1150px) {
-  body {
-    overflow: auto;
-  }
-
+@media (max-width: 1180px) {
   .ventas-page {
-    height: auto;
-    max-height: none;
-    min-height: 100vh;
-    overflow-y: auto;
-  }
-
-  .ventas-resumen-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .ventas-filtros {
-    grid-template-columns: 1fr;
+    padding: 16px 18px 26px;
   }
 
   .ventas-contenido {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
   }
 
   .metodo-pago-contenido {
     grid-template-columns: 1fr;
   }
 
-  .metodo-pago-panel,
-  .ventas-hora-panel {
-    height: auto;
-    min-height: 250px;
-  }
-
-  .listado-ventas,
-  .productos-vendidos {
-    height: 330px;
-  }
-}
-
-@media (max-width: 650px) {
-  .ventas-page {
-    padding: 16px;
-  }
-
-  .ventas-header h1 {
-    font-size: 26px;
-  }
-
-  .detalle-grid {
-    grid-template-columns: 1fr;
+  .grafico-dona {
+    width: 118px;
+    height: 118px;
   }
 }

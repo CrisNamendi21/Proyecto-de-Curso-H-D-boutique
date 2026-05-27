@@ -103,3 +103,23 @@ export function registrarVentaCompleta(datos) {
 export function obtenerDashboard() {
   return obtenerDatos("/dashboard/");
 }
+
+export function obtenerResumenVentasDia(filtros = {}) {
+  const params = new URLSearchParams();
+
+  if (filtros.fecha) {
+    params.append("fecha", filtros.fecha);
+  }
+
+  if (filtros.cliente) {
+    params.append("cliente", filtros.cliente);
+  }
+
+  if (filtros.metodoPago && filtros.metodoPago !== "Todos") {
+    params.append("metodo_pago", filtros.metodoPago);
+  }
+
+  const query = params.toString();
+
+  return obtenerDatos(`/ventas/resumen-dia${query ? `?${query}` : ""}`);
+}

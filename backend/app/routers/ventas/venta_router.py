@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import date, datetime
+from typing import Optional
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -12,6 +14,7 @@ from app.schemas.ventas.venta_schema import (
     VentaUpdate,
     VentaResponse,
 )
+from app.schemas.ventas.venta_resumen_dia_schema import VentasResumenDiaResponse
 
 from app.models.ventas.detalle_venta_model import DetalleVenta
 from app.models.ventas.pago_venta_model import PagoVenta
@@ -177,9 +180,180 @@ def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
     return nuevo_cliente
 
 
+def _a_float(valor):
+    return float(valor or 0)
+
+
+def _nombre_cliente(cliente: Cliente):
+    nombre = f"{cliente.Nombres or ''} {cliente.Apellidos or ''}".strip()
+    return nombre or "Cliente sin nombre"
+
+
+def _formatear_hora(fecha_emision):
+    if not fecha_emision:
+        return "--:--"
+
+    return fecha_emision.strftime("%I:%M %p")
+
+
+def _clasificar_metodo_pago(pagos):
+    tipos_pago = {
+        pago.Tipo_pago: nombre_pago
+        for pago, nombre_pago in pagos
+    }
+
+    if len(tipos_pago) > 1:
+        return "Mixto"
+
+    if not tipos_pago:
+        return "Sin pago"
+
+    return next(iter(tipos_pago.values()))
+
+
+def _normalizar_metodo_pago(metodo_pago: Optional[str]):
+    if not metodo_pago:
+        return None
+
+    metodo = metodo_pago.strip().lower()
+
+    if metodo in ("todos", "todo", "all"):
+        return None
+
+    return metodo
+
+
 @router.get("/", response_model=list[VentaResponse])
 def listar_ventas(db: Session = Depends(get_db)):
     return db.query(Venta).all()
+
+
+@router.get("/resumen-dia", response_model=VentasResumenDiaResponse)
+def obtener_resumen_ventas_dia(
+    fecha: Optional[date] = None,
+    cliente: Optional[str] = None,
+    metodo_pago: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    fecha_consulta = fecha or date.today()
+    metodo_filtrado = _normalizar_metodo_pago(metodo_pago)
+    cliente_filtrado = cliente.strip().lower() if cliente and cliente.strip() else None
+
+    ventas_query = db.query(Venta, Cliente, Recibo).join(
+        Cliente,
+        Venta.ID_Cliente == Cliente.ID_Cliente
+    ).outerjoin(
+        Recibo,
+        Recibo.ID_Venta == Venta.ID_Venta
+    ).filter(
+        Venta.FechaVenta == fecha_consulta
+    )
+
+    if cliente_filtrado:
+        patron_cliente = f"%{cliente_filtrado}%"
+        ventas_query = ventas_query.filter(
+            func.lower(
+                func.concat(
+                    func.coalesce(Cliente.Nombres, ""),
+                    " ",
+                    func.coalesce(Cliente.Apellidos, "")
+                )
+            ).like(patron_cliente)
+        )
+
+    ventas_data = ventas_query.order_by(
+        Recibo.FechaEmision.desc(),
+        Venta.ID_Venta.desc()
+    ).all()
+
+    ventas_filtradas = []
+    totales_metodos = {
+        "Efectivo": 0,
+        "Transferencia": 0,
+        "Mixto": 0,
+    }
+
+    for venta, cliente_venta, recibo in ventas_data:
+        pagos = db.query(PagoVenta, TipoPago.NombrePago).join(
+            TipoPago,
+            PagoVenta.Tipo_pago == TipoPago.Tipo_pago
+        ).filter(
+            PagoVenta.ID_Venta == venta.ID_Venta
+        ).all()
+
+        metodo = _clasificar_metodo_pago(pagos)
+
+        if metodo_filtrado and metodo.lower() != metodo_filtrado:
+            continue
+
+        total_productos = db.query(
+            func.coalesce(func.sum(DetalleVenta.Cantidad), 0)
+        ).filter(
+            DetalleVenta.ID_Venta == venta.ID_Venta
+        ).scalar() or 0
+
+        venta_item = {
+            "id_venta": venta.ID_Venta,
+            "numero_venta": f"V-{venta.ID_Venta:05d}",
+            "hora": _formatear_hora(recibo.FechaEmision if recibo else None),
+            "fecha": venta.FechaVenta.isoformat(),
+            "cliente": _nombre_cliente(cliente_venta),
+            "metodo_pago": metodo,
+            "total": _a_float(venta.Total),
+            "productos": int(total_productos)
+        }
+
+        ventas_filtradas.append(venta_item)
+
+        if metodo in totales_metodos:
+            totales_metodos[metodo] += _a_float(venta.Total)
+
+    ids_ventas = [venta["id_venta"] for venta in ventas_filtradas]
+    productos_mas_vendidos = []
+
+    if ids_ventas:
+        productos_data = db.query(
+            Producto.Nombre,
+            func.coalesce(func.sum(DetalleVenta.Cantidad), 0),
+            func.coalesce(func.sum(DetalleVenta.subtotal), 0)
+        ).join(
+            DetalleVenta,
+            DetalleVenta.ID_Producto == Producto.ID_Producto
+        ).filter(
+            DetalleVenta.ID_Venta.in_(ids_ventas)
+        ).group_by(
+            Producto.Nombre
+        ).order_by(
+            func.sum(DetalleVenta.Cantidad).desc()
+        ).limit(5).all()
+
+        productos_mas_vendidos = [
+            {
+                "producto": producto,
+                "cantidad": int(cantidad or 0),
+                "total_vendido": _a_float(total_vendido)
+            }
+            for producto, cantidad, total_vendido in productos_data
+        ]
+
+    ventas_hoy = sum(venta["total"] for venta in ventas_filtradas)
+    productos_vendidos = sum(venta["productos"] for venta in ventas_filtradas)
+
+    return {
+        "resumen": {
+            "ventas_hoy": ventas_hoy,
+            "transacciones": len(ventas_filtradas),
+            "productos_vendidos": productos_vendidos,
+            "total_neto": ventas_hoy
+        },
+        "ventas": ventas_filtradas,
+        "productos_mas_vendidos": productos_mas_vendidos,
+        "metodos_pago": [
+            {"metodo": "Efectivo", "total": totales_metodos["Efectivo"]},
+            {"metodo": "Transferencia", "total": totales_metodos["Transferencia"]},
+            {"metodo": "Mixto", "total": totales_metodos["Mixto"]},
+        ]
+    }
 
 
 @router.get("/{id_venta}", response_model=VentaResponse)

@@ -1,5 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { obtenerResumenVentasDia } from "../../../api/api";
 import "./Ventas.css";
+
+const datosIniciales = {
+  resumen: {
+    ventas_hoy: 0,
+    transacciones: 0,
+    productos_vendidos: 0,
+    total_neto: 0,
+  },
+  ventas: [],
+  productos_mas_vendidos: [],
+  metodos_pago: [
+    { metodo: "Efectivo", total: 0 },
+    { metodo: "Transferencia", total: 0 },
+    { metodo: "Mixto", total: 0 },
+  ],
+};
 
 function Ventas() {
   const obtenerFechaActual = () => {
@@ -9,196 +26,80 @@ function Ventas() {
     return fechaLocal.toISOString().split("T")[0];
   };
 
-  const ventasIniciales = [
-    {
-      id: 1,
-      hora: "09:15 AM",
-      numero: "V-00125",
-      cliente: "María López",
-      metodoPago: "Efectivo",
-      total: 1250,
-      productos: 3,
-      estado: "Completada",
-    },
-    {
-      id: 2,
-      hora: "09:45 AM",
-      numero: "V-00126",
-      cliente: "Ana Martínez",
-      metodoPago: "Transferencia",
-      total: 850,
-      productos: 2,
-      estado: "Completada",
-    },
-    {
-      id: 3,
-      hora: "10:20 AM",
-      numero: "V-00127",
-      cliente: "Cliente general",
-      metodoPago: "Efectivo",
-      total: 620,
-      productos: 1,
-      estado: "Completada",
-    },
-    {
-      id: 4,
-      hora: "11:05 AM",
-      numero: "V-00128",
-      cliente: "Daniela Herrera",
-      metodoPago: "Transferencia",
-      total: 2980,
-      productos: 4,
-      estado: "Completada",
-    },
-    {
-      id: 5,
-      hora: "11:50 AM",
-      numero: "V-00129",
-      cliente: "Cliente general",
-      metodoPago: "Efectivo",
-      total: 450,
-      productos: 1,
-      estado: "Completada",
-    },
-    {
-      id: 6,
-      hora: "12:30 PM",
-      numero: "V-00130",
-      cliente: "María López",
-      metodoPago: "Efectivo + Transferencia",
-      total: 1750,
-      productos: 2,
-      estado: "Completada",
-    },
-    {
-      id: 7,
-      hora: "01:15 PM",
-      numero: "V-00131",
-      cliente: "Ana Martínez",
-      metodoPago: "Efectivo",
-      total: 980,
-      productos: 2,
-      estado: "Completada",
-    },
-    {
-      id: 8,
-      hora: "02:00 PM",
-      numero: "V-00132",
-      cliente: "Cliente general",
-      metodoPago: "Transferencia",
-      total: 3250,
-      productos: 5,
-      estado: "Completada",
-    },
-  ];
-
-  const productosMasVendidos = [
-    {
-      id: 1,
-      producto: "Vestido Floral",
-      cantidad: 18,
-      total: 5400,
-    },
-    {
-      id: 2,
-      producto: "Blusa Manga Larga",
-      cantidad: 15,
-      total: 3750,
-    },
-    {
-      id: 3,
-      producto: "Pantalón Palazzo",
-      cantidad: 12,
-      total: 3240,
-    },
-    {
-      id: 4,
-      producto: "Camisa Oversize",
-      cantidad: 10,
-      total: 2800,
-    },
-    {
-      id: 5,
-      producto: "Falda Plisada",
-      cantidad: 8,
-      total: 1920,
-    },
-  ];
-
-  const ventasPorHora = [
-    { hora: "8 AM", monto: 2000 },
-    { hora: "9 AM", monto: 5100 },
-    { hora: "10 AM", monto: 4300 },
-    { hora: "11 AM", monto: 6500 },
-    { hora: "12 PM", monto: 8200 },
-    { hora: "1 PM", monto: 7100 },
-    { hora: "2 PM", monto: 5000 },
-    { hora: "3 PM", monto: 4000 },
-    { hora: "4 PM", monto: 2900 },
-    { hora: "5 PM", monto: 1900 },
-    { hora: "6 PM", monto: 900 },
-  ];
-
-  const [fecha, setFecha] = useState(obtenerFechaActual());
-  const [cliente, setCliente] = useState("");
-  const [metodoPago, setMetodoPago] = useState("");
+  const [filtros, setFiltros] = useState({
+    fecha: obtenerFechaActual(),
+    cliente: "",
+    metodoPago: "Todos",
+  });
+  const [datosVentas, setDatosVentas] = useState(datosIniciales);
+  const [cargandoVentas, setCargandoVentas] = useState(true);
+  const [errorVentas, setErrorVentas] = useState("");
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
   const formatearDinero = (valor) => {
-    return `C$ ${Number(valor).toLocaleString("es-NI", {
+    return `C$ ${Number(valor || 0).toLocaleString("es-NI", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
   };
 
-  const ventasFiltradas = ventasIniciales.filter((venta) => {
-    const coincideCliente = venta.cliente
-      .toLowerCase()
-      .includes(cliente.toLowerCase());
+  const cargarVentas = async (filtrosConsulta = filtros) => {
+    if (!filtrosConsulta.fecha) {
+      setErrorVentas("Debes seleccionar una fecha.");
+      return;
+    }
 
-    const coincideMetodo =
-      metodoPago === "" || venta.metodoPago === metodoPago;
+    setCargandoVentas(true);
+    setErrorVentas("");
 
-    return coincideCliente && coincideMetodo;
-  });
+    try {
+      const respuesta = await obtenerResumenVentasDia({
+        fecha: filtrosConsulta.fecha,
+        cliente: filtrosConsulta.cliente.trim(),
+        metodoPago: filtrosConsulta.metodoPago,
+      });
 
-  const resumen = useMemo(() => {
-    const totalVentas = ventasFiltradas.reduce(
-      (total, venta) => total + venta.total,
-      0
-    );
+      setDatosVentas({
+        resumen: respuesta?.resumen || datosIniciales.resumen,
+        ventas: respuesta?.ventas || [],
+        productos_mas_vendidos: respuesta?.productos_mas_vendidos || [],
+        metodos_pago: respuesta?.metodos_pago || datosIniciales.metodos_pago,
+      });
+    } catch (error) {
+      console.error("Error al cargar ventas:", error);
+      setDatosVentas(datosIniciales);
+      setErrorVentas(
+        error.message || "No se pudieron cargar las ventas del día."
+      );
+    } finally {
+      setCargandoVentas(false);
+    }
+  };
 
-    const totalProductos = ventasFiltradas.reduce(
-      (total, venta) => total + venta.productos,
-      0
-    );
+  useEffect(() => {
+    cargarVentas();
+  }, []);
 
-    const efectivo = ventasFiltradas
-      .filter((venta) => venta.metodoPago === "Efectivo")
-      .reduce((total, venta) => total + venta.total, 0);
+  const manejarFiltro = (campo) => (e) => {
+    setFiltros((filtrosActuales) => ({
+      ...filtrosActuales,
+      [campo]: e.target.value,
+    }));
+  };
 
-    const transferencia = ventasFiltradas
-      .filter((venta) => venta.metodoPago === "Transferencia")
-      .reduce((total, venta) => total + venta.total, 0);
-
-    const mixto = ventasFiltradas
-      .filter((venta) => venta.metodoPago === "Efectivo + Transferencia")
-      .reduce((total, venta) => total + venta.total, 0);
-
-    return {
-      totalVentas,
-      totalProductos,
-      efectivo,
-      transferencia,
-      mixto,
-      transacciones: ventasFiltradas.length,
-    };
-  }, [ventasFiltradas]);
+  const aplicarFiltros = () => {
+    cargarVentas(filtros);
+  };
 
   const limpiarFiltros = () => {
-    setFecha(obtenerFechaActual());
-    setCliente("");
-    setMetodoPago("");
+    const filtrosLimpios = {
+      fecha: obtenerFechaActual(),
+      cliente: "",
+      metodoPago: "Todos",
+    };
+
+    setFiltros(filtrosLimpios);
+    cargarVentas(filtrosLimpios);
   };
 
   const obtenerClaseMetodo = (metodo) => {
@@ -207,12 +108,38 @@ function Ventas() {
     return "metodo mixto";
   };
 
+  const totalMetodos = useMemo(() => {
+    return datosVentas.metodos_pago.reduce(
+      (total, metodo) => total + Number(metodo.total || 0),
+      0
+    );
+  }, [datosVentas.metodos_pago]);
+
   const calcularPorcentaje = (monto) => {
-    if (resumen.totalVentas === 0) return 0;
-    return Math.round((monto / resumen.totalVentas) * 100);
+    if (totalMetodos === 0) return 0;
+    return Math.round((Number(monto || 0) / totalMetodos) * 100);
   };
 
-  const maxVentaHora = Math.max(...ventasPorHora.map((item) => item.monto));
+  const obtenerTotalMetodo = (nombreMetodo) => {
+    return (
+      datosVentas.metodos_pago.find(
+        (metodo) => metodo.metodo === nombreMetodo
+      )?.total || 0
+    );
+  };
+
+  const efectivoDeg =
+    totalMetodos > 0 ? (obtenerTotalMetodo("Efectivo") / totalMetodos) * 360 : 0;
+  const transferenciaDeg =
+    totalMetodos > 0
+      ? (obtenerTotalMetodo("Transferencia") / totalMetodos) * 360
+      : 0;
+  const fondoDona =
+    totalMetodos > 0
+      ? `conic-gradient(#88d47f 0deg ${efectivoDeg}deg, #8ec5ff ${efectivoDeg}deg ${
+          efectivoDeg + transferenciaDeg
+        }deg, #c49af4 ${efectivoDeg + transferenciaDeg}deg 360deg)`
+      : "conic-gradient(#f4d9e5 0deg 360deg)";
 
   return (
     <section className="ventas-page">
@@ -220,19 +147,25 @@ function Ventas() {
         <h1>Ventas del día</h1>
       </div>
 
+      {cargandoVentas && (
+        <p className="estado-ventas">Cargando ventas del día...</p>
+      )}
+
+      {errorVentas && <p className="error-ventas">{errorVentas}</p>}
+
       <div className="ventas-resumen-cards">
         <article className="venta-card">
           <div>
             <span>Ventas de hoy</span>
-            <strong>{formatearDinero(resumen.totalVentas)}</strong>
+            <strong>{formatearDinero(datosVentas.resumen.ventas_hoy)}</strong>
           </div>
-          <div className="card-icono">🛒</div>
+          <div className="card-icono">▣</div>
         </article>
 
         <article className="venta-card">
           <div>
             <span>Transacciones</span>
-            <strong>{resumen.transacciones}</strong>
+            <strong>{datosVentas.resumen.transacciones}</strong>
           </div>
           <div className="card-icono">▤</div>
         </article>
@@ -240,9 +173,9 @@ function Ventas() {
         <article className="venta-card">
           <div>
             <span>Productos vendidos</span>
-            <strong>{resumen.totalProductos}</strong>
+            <strong>{datosVentas.resumen.productos_vendidos}</strong>
           </div>
-          <div className="card-icono">👕</div>
+          <div className="card-icono">□</div>
         </article>
       </div>
 
@@ -251,9 +184,9 @@ function Ventas() {
           <label>Fecha</label>
           <input
             type="date"
-            value={fecha}
+            value={filtros.fecha}
             max={obtenerFechaActual()}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={manejarFiltro("fecha")}
           />
         </div>
 
@@ -262,28 +195,28 @@ function Ventas() {
           <input
             type="text"
             placeholder="Buscar cliente"
-            value={cliente}
-            onChange={(e) => setCliente(e.target.value)}
+            value={filtros.cliente}
+            onChange={manejarFiltro("cliente")}
           />
         </div>
 
         <div className="filtro-grupo">
           <label>Método de pago</label>
           <select
-            value={metodoPago}
-            onChange={(e) => setMetodoPago(e.target.value)}
+            value={filtros.metodoPago}
+            onChange={manejarFiltro("metodoPago")}
           >
-            <option value="">Todos los métodos</option>
+            <option value="Todos">Todos los métodos</option>
             <option value="Efectivo">Efectivo</option>
             <option value="Transferencia">Transferencia</option>
-            <option value="Efectivo + Transferencia">
-              Efectivo + Transferencia
-            </option>
+            <option value="Mixto">Mixto</option>
           </select>
         </div>
 
         <div className="acciones-filtros">
-          <button type="button">Filtrar</button>
+          <button type="button" onClick={aplicarFiltros}>
+            Filtrar
+          </button>
           <button type="button" onClick={limpiarFiltros}>
             Limpiar
           </button>
@@ -311,14 +244,14 @@ function Ventas() {
                 </thead>
 
                 <tbody>
-                  {ventasFiltradas.map((venta) => (
-                    <tr key={venta.id}>
+                  {datosVentas.ventas.map((venta) => (
+                    <tr key={venta.id_venta}>
                       <td>{venta.hora}</td>
-                      <td>{venta.numero}</td>
+                      <td>{venta.numero_venta}</td>
                       <td>{venta.cliente}</td>
                       <td>
-                        <span className={obtenerClaseMetodo(venta.metodoPago)}>
-                          {venta.metodoPago}
+                        <span className={obtenerClaseMetodo(venta.metodo_pago)}>
+                          {venta.metodo_pago}
                         </span>
                       </td>
                       <td>{formatearDinero(venta.total)}</td>
@@ -334,10 +267,10 @@ function Ventas() {
                     </tr>
                   ))}
 
-                  {ventasFiltradas.length === 0 && (
+                  {!cargandoVentas && datosVentas.ventas.length === 0 && (
                     <tr>
                       <td colSpan="6" className="sin-datos">
-                        No se encontraron ventas.
+                        No hay ventas registradas para esta fecha.
                       </td>
                     </tr>
                   )}
@@ -362,16 +295,25 @@ function Ventas() {
                 </thead>
 
                 <tbody>
-                  {productosMasVendidos.map((producto) => (
-                    <tr key={producto.id}>
+                  {datosVentas.productos_mas_vendidos.map((producto) => (
+                    <tr key={producto.producto}>
                       <td>
                         <span className="punto-producto"></span>
                         {producto.producto}
                       </td>
                       <td>{producto.cantidad}</td>
-                      <td>{formatearDinero(producto.total)}</td>
+                      <td>{formatearDinero(producto.total_vendido)}</td>
                     </tr>
                   ))}
+
+                  {!cargandoVentas &&
+                    datosVentas.productos_mas_vendidos.length === 0 && (
+                      <tr>
+                        <td colSpan="3" className="sin-datos">
+                          No hay productos vendidos para esta fecha.
+                        </td>
+                      </tr>
+                    )}
                 </tbody>
               </table>
             </div>
@@ -385,61 +327,31 @@ function Ventas() {
             </div>
 
             <div className="metodo-pago-contenido">
-              <div className="grafico-dona">
+              <div className="grafico-dona" style={{ background: fondoDona }}>
                 <div className="dona-centro">
                   <span>Total</span>
-                  <strong>{formatearDinero(resumen.totalVentas)}</strong>
+                  <strong>{formatearDinero(totalMetodos)}</strong>
                 </div>
               </div>
 
               <div className="lista-metodos">
-                <div className="metodo-item">
-                  <span className="circulo efectivo-bg"></span>
-                  <p>Efectivo</p>
-                  <strong>
-                    {formatearDinero(resumen.efectivo)} (
-                    {calcularPorcentaje(resumen.efectivo)}%)
-                  </strong>
-                </div>
+                {["Efectivo", "Transferencia", "Mixto"].map((metodo) => {
+                  const totalMetodo = obtenerTotalMetodo(metodo);
 
-                <div className="metodo-item">
-                  <span className="circulo transferencia-bg"></span>
-                  <p>Transferencia</p>
-                  <strong>
-                    {formatearDinero(resumen.transferencia)} (
-                    {calcularPorcentaje(resumen.transferencia)}%)
-                  </strong>
-                </div>
-
-                <div className="metodo-item">
-                  <span className="circulo mixto-bg"></span>
-                  <p>Mixto</p>
-                  <strong>
-                    {formatearDinero(resumen.mixto)} (
-                    {calcularPorcentaje(resumen.mixto)}%)
-                  </strong>
-                </div>
+                  return (
+                    <div className="metodo-item" key={metodo}>
+                      <span
+                        className={`circulo ${metodo.toLowerCase()}-bg`}
+                      ></span>
+                      <p>{metodo}</p>
+                      <strong>
+                        {formatearDinero(totalMetodo)} (
+                        {calcularPorcentaje(totalMetodo)}%)
+                      </strong>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          </article>
-
-          <article className="panel-ventas ventas-hora-panel">
-            <div className="panel-titulo">
-              <h2>Ventas por hora</h2>
-            </div>
-
-            <div className="barras-hora">
-              {ventasPorHora.map((item) => (
-                <div className="barra-item" key={item.hora}>
-                  <div
-                    className="barra"
-                    style={{
-                      height: `${(item.monto / maxVentaHora) * 110}px`,
-                    }}
-                  ></div>
-                  <span>{item.hora}</span>
-                </div>
-              ))}
             </div>
           </article>
 
@@ -450,22 +362,12 @@ function Ventas() {
 
             <div className="resumen-dia-linea">
               <span>Total ventas</span>
-              <strong>{formatearDinero(resumen.totalVentas)}</strong>
-            </div>
-
-            <div className="resumen-dia-linea">
-              <span>Total descuentos</span>
-              <strong>- {formatearDinero(950)}</strong>
-            </div>
-
-            <div className="resumen-dia-linea">
-              <span>Total impuestos</span>
-              <strong>+ {formatearDinero(2050)}</strong>
+              <strong>{formatearDinero(datosVentas.resumen.ventas_hoy)}</strong>
             </div>
 
             <div className="resumen-dia-total">
               <span>Total neto</span>
-              <strong>{formatearDinero(resumen.totalVentas + 2050 - 950)}</strong>
+              <strong>{formatearDinero(datosVentas.resumen.total_neto)}</strong>
             </div>
           </article>
         </div>
@@ -484,7 +386,7 @@ function Ventas() {
             <div className="detalle-grid">
               <div>
                 <span>No. venta</span>
-                <strong>{ventaSeleccionada.numero}</strong>
+                <strong>{ventaSeleccionada.numero_venta}</strong>
               </div>
 
               <div>
@@ -499,7 +401,7 @@ function Ventas() {
 
               <div>
                 <span>Método de pago</span>
-                <strong>{ventaSeleccionada.metodoPago}</strong>
+                <strong>{ventaSeleccionada.metodo_pago}</strong>
               </div>
 
               <div>
