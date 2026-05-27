@@ -88,6 +88,27 @@
   width: 180px;
 }
 
+.empleados-mensaje,
+.empleados-error {
+  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.empleados-mensaje {
+  border: 1px solid #acd9bd;
+  background: #f0fff5;
+  color: #2d7a49;
+}
+
+.empleados-error {
+  border: 1px solid #f3aac8;
+  background: #fff1f6;
+  color: #b9316f;
+}
+
 .empleados-filtros input:focus,
 .empleados-filtros select:focus {
   border-color: #ff3f7f;
@@ -140,6 +161,11 @@
   box-shadow: 0 8px 20px rgba(160, 70, 110, 0.08);
 }
 
+.empleados-tabla-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .empleados-tabla-contenedor h3 {
   margin: 0;
   padding: 14px 18px;
@@ -150,6 +176,7 @@
 
 .empleados-tabla {
   width: 100%;
+  min-width: 1280px;
   border-collapse: collapse;
 }
 
@@ -194,6 +221,32 @@
 .estado.inactivo {
   background: #eeeeee;
   color: #777;
+}
+
+.btn-estado-empleado {
+  min-width: 92px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.btn-estado-empleado.desactivar {
+  border: 1px solid #d8b7c8;
+  background: white;
+  color: #6b2c45;
+}
+
+.btn-estado-empleado.activar {
+  border: 1px solid #f3aac8;
+  background: #fff3f8;
+  color: #ff3f7f;
+}
+
+.btn-estado-empleado:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .sin-resultados {
@@ -394,4 +447,9 @@
   .btn-guardar {
     width: 100%;
   }
+}
+
+.grupo-form small {
+  color: #9b6b7e;
+  font-size: 11px;
 }

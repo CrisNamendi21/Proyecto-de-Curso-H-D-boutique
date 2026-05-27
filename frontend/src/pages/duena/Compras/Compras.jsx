@@ -1,5 +1,20 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  marcarCompraRecibida,
+  obtenerCompras,
+  obtenerProductosPorProveedor,
+  obtenerProveedores,
+  obtenerResumenCompras,
+  registrarCompraCompleta,
+} from "../../../api/api";
 import "./Compras.css";
+
+const resumenInicial = {
+  compras_mes: 0,
+  ordenes_registradas: 0,
+  monto_invertido: 0,
+  proveedores_activos: 0,
+};
 
 function Compras() {
   const obtenerFechaActual = () => {
@@ -9,60 +24,28 @@ function Compras() {
     return fechaLocal.toISOString().split("T")[0];
   };
 
+  const crearFormularioVacio = () => ({
+    fecha: obtenerFechaActual(),
+    proveedor: "",
+    productoSeleccionado: "",
+    cantidad: "",
+    productos: [],
+    estado: "Pendiente",
+    costoEnvio: "",
+    descripcion: "",
+  });
+
   const [mostrarModal, setMostrarModal] = useState(false);
-
-  const [compras, setCompras] = useState([
-    {
-      id: 1,
-      numero: "C-00125",
-      fecha: "2026-05-22",
-      proveedor: "Textiles Managua",
-      categoria: "Blusas",
-      producto: "Blusa",
-      cantidad: 12,
-      monto: 4250,
-      estado: "Recibida",
-      descripcion: "Compra de blusas para inventario.",
-    },
-    {
-      id: 2,
-      numero: "C-00124",
-      fecha: "2026-05-22",
-      proveedor: "Moda Centro",
-      categoria: "Pantalones",
-      producto: "Pantalón",
-      cantidad: 8,
-      monto: 2980,
-      estado: "Pendiente",
-      descripcion: "Compra pendiente de recepción.",
-    },
-    {
-      id: 3,
-      numero: "C-00123",
-      fecha: "2026-05-21",
-      proveedor: "Distribuidora Rosa",
-      categoria: "Vestidos",
-      producto: "Vestido",
-      cantidad: 10,
-      monto: 5600,
-      estado: "Recibida",
-      descripcion: "Vestidos para temporada.",
-    },
-    {
-      id: 4,
-      numero: "C-00122",
-      fecha: "2026-05-20",
-      proveedor: "Boutique Supply",
-      categoria: "Accesorios",
-      producto: "Accesorio",
-      cantidad: 15,
-      monto: 1950,
-      estado: "Pendiente",
-      descripcion: "Compra de accesorios.",
-    },
-  ]);
-
-  const [comprasFiltradas, setComprasFiltradas] = useState(compras);
+  const [compras, setCompras] = useState([]);
+  const [resumen, setResumen] = useState(resumenInicial);
+  const [proveedores, setProveedores] = useState([]);
+  const [productosProveedor, setProductosProveedor] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [cargandoProductos, setCargandoProductos] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [compraProcesando, setCompraProcesando] = useState(null);
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
   const [filtros, setFiltros] = useState({
     busqueda: "",
@@ -71,179 +54,306 @@ function Compras() {
     estado: "",
   });
 
-  const [nuevaCompra, setNuevaCompra] = useState({
-    numero: "",
-    fecha: obtenerFechaActual(),
-    proveedor: "",
-    categoria: "",
-    producto: "",
-    cantidad: "",
-    monto: "",
-    estado: "Pendiente",
-    descripcion: "",
-  });
+  const [nuevaCompra, setNuevaCompra] = useState(crearFormularioVacio);
 
-  const proveedores = [
-    "Textiles Managua",
-    "Moda Centro",
-    "Distribuidora Rosa",
-    "Boutique Supply",
-  ];
-
-  const categorias = ["Blusas", "Pantalones", "Vestidos", "Accesorios", "Camisas"];
-
-  const productosPorCategoria = {
-    Blusas: ["Blusa", "Top", "Camisa manga corta"],
-    Pantalones: ["Pantalón", "Jeans", "Short"],
-    Vestidos: ["Vestido", "Vestido casual", "Vestido elegante"],
-    Accesorios: ["Accesorio", "Bolso", "Collar"],
-    Camisas: ["Camisa", "Camisa formal", "Camisa casual"],
+  const formatoDinero = (valor) => {
+    return `C$ ${Number(valor || 0).toLocaleString("es-NI", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
-  const totalComprasMes = compras.reduce((total, compra) => total + compra.monto, 0);
-  const ordenesRegistradas = compras.length;
-  const proveedoresActivos = new Set(compras.map((compra) => compra.proveedor)).size;
+  const cargarCompras = async (filtrosConsulta = filtros) => {
+    setCargando(true);
+    setError("");
+
+    try {
+      const [resumenRespuesta, comprasRespuesta, proveedoresRespuesta] =
+        await Promise.all([
+          obtenerResumenCompras(),
+          obtenerCompras(filtrosConsulta),
+          obtenerProveedores(),
+        ]);
+
+      setResumen(resumenRespuesta || resumenInicial);
+      setCompras(comprasRespuesta || []);
+      setProveedores(proveedoresRespuesta || []);
+    } catch (errorCarga) {
+      console.error("Error al cargar compras:", errorCarga);
+      setError(errorCarga.message || "No se pudieron cargar las compras.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarCompras();
+  }, []);
+
+  const cargarProductosProveedor = async (idProveedor) => {
+    if (!idProveedor) {
+      setProductosProveedor([]);
+      return;
+    }
+
+    setCargandoProductos(true);
+    setError("");
+
+    try {
+      const productosRespuesta = await obtenerProductosPorProveedor(idProveedor);
+      setProductosProveedor(productosRespuesta || []);
+    } catch (errorProductos) {
+      console.error("Error al cargar productos del proveedor:", errorProductos);
+      setProductosProveedor([]);
+      setError(
+        errorProductos.message ||
+          "No se pudieron cargar los productos del proveedor."
+      );
+    } finally {
+      setCargandoProductos(false);
+    }
+  };
 
   const manejarFiltro = (e) => {
     const { name, value } = e.target;
 
-    setFiltros({
-      ...filtros,
+    setFiltros((filtrosActuales) => ({
+      ...filtrosActuales,
       [name]: value,
-    });
+    }));
   };
 
   const filtrarCompras = () => {
-    const texto = filtros.busqueda.toLowerCase().trim();
-
-    const resultado = compras.filter((compra) => {
-      const coincideBusqueda =
-        compra.numero.toLowerCase().includes(texto) ||
-        compra.proveedor.toLowerCase().includes(texto) ||
-        compra.producto.toLowerCase().includes(texto);
-
-      const coincideProveedor =
-        filtros.proveedor === "" || compra.proveedor === filtros.proveedor;
-
-      const coincideFecha = filtros.fecha === "" || compra.fecha === filtros.fecha;
-
-      const coincideEstado =
-        filtros.estado === "" || compra.estado === filtros.estado;
-
-      return (
-        coincideBusqueda &&
-        coincideProveedor &&
-        coincideFecha &&
-        coincideEstado
-      );
-    });
-
-    setComprasFiltradas(resultado);
+    cargarCompras(filtros);
   };
 
   const limpiarFiltros = () => {
-    setFiltros({
+    const filtrosLimpios = {
       busqueda: "",
       proveedor: "",
       fecha: "",
       estado: "",
-    });
+    };
 
-    setComprasFiltradas(compras);
+    setFiltros(filtrosLimpios);
+    cargarCompras(filtrosLimpios);
   };
 
   const abrirModal = () => {
-    const siguienteNumero = `C-${String(compras.length + 126).padStart(5, "0")}`;
-
-    setNuevaCompra({
-      numero: siguienteNumero,
-      fecha: obtenerFechaActual(),
-      proveedor: "",
-      categoria: "",
-      producto: "",
-      cantidad: "",
-      monto: "",
-      estado: "Pendiente",
-      descripcion: "",
-    });
-
+    setError("");
+    setMensaje("");
+    setNuevaCompra(crearFormularioVacio());
+    setProductosProveedor([]);
     setMostrarModal(true);
   };
 
   const cerrarModal = () => {
     setMostrarModal(false);
+    setNuevaCompra(crearFormularioVacio());
+    setProductosProveedor([]);
+    setGuardando(false);
   };
 
   const manejarNuevaCompra = (e) => {
     const { name, value } = e.target;
 
-    if (name === "fecha") {
-      if (value < obtenerFechaActual()) return;
-    }
-
-    if (name === "cantidad") {
-      if (value !== "" && Number(value) < 1) return;
-    }
-
-    if (name === "monto") {
-      if (value !== "" && Number(value) < 1) return;
-    }
-
-    if (name === "categoria") {
-      setNuevaCompra({
-        ...nuevaCompra,
-        categoria: value,
-        producto: "",
-      });
+    if (name === "fecha" && value < obtenerFechaActual()) {
       return;
     }
 
-    setNuevaCompra({
-      ...nuevaCompra,
+    if (name === "cantidad" && value !== "" && Number(value) < 1) {
+      return;
+    }
+
+    if (name === "costoEnvio" && value !== "" && Number(value) < 0) {
+      return;
+    }
+
+    if (name === "proveedor") {
+      setNuevaCompra((compraActual) => ({
+        ...compraActual,
+        proveedor: value,
+        productoSeleccionado: "",
+        cantidad: "",
+        productos: [],
+      }));
+      cargarProductosProveedor(value);
+      return;
+    }
+
+    setNuevaCompra((compraActual) => ({
+      ...compraActual,
       [name]: value,
+    }));
+  };
+
+  const productoSeleccionado = productosProveedor.find(
+    (producto) =>
+      String(producto.ID_ProductoProveedor) ===
+      String(nuevaCompra.productoSeleccionado)
+  );
+
+  const agregarProducto = () => {
+    if (!productoSeleccionado) {
+      setError("Debes seleccionar un producto del proveedor.");
+      return;
+    }
+
+    if (!nuevaCompra.cantidad || Number(nuevaCompra.cantidad) <= 0) {
+      setError("La cantidad debe ser mayor que cero.");
+      return;
+    }
+
+    setError("");
+
+    const cantidad = Number(nuevaCompra.cantidad);
+
+    setNuevaCompra((compraActual) => {
+      const existeProducto = compraActual.productos.find(
+        (producto) =>
+          producto.ID_ProductoProveedor === productoSeleccionado.ID_ProductoProveedor
+      );
+
+      if (existeProducto) {
+        return {
+          ...compraActual,
+          productoSeleccionado: "",
+          cantidad: "",
+          productos: compraActual.productos.map((producto) =>
+            producto.ID_ProductoProveedor ===
+            productoSeleccionado.ID_ProductoProveedor
+              ? { ...producto, Cantidad: producto.Cantidad + cantidad }
+              : producto
+          ),
+        };
+      }
+
+      return {
+        ...compraActual,
+        productoSeleccionado: "",
+        cantidad: "",
+        productos: [
+          ...compraActual.productos,
+          {
+            ...productoSeleccionado,
+            Cantidad: cantidad,
+          },
+        ],
+      };
     });
   };
 
-  const guardarCompra = (e) => {
-    e.preventDefault();
+  const quitarProducto = (idProductoProveedor) => {
+    setNuevaCompra((compraActual) => ({
+      ...compraActual,
+      productos: compraActual.productos.filter(
+        (producto) => producto.ID_ProductoProveedor !== idProductoProveedor
+      ),
+    }));
+  };
 
-    if (
-      nuevaCompra.numero.trim() === "" ||
-      nuevaCompra.proveedor.trim() === "" ||
-      nuevaCompra.categoria.trim() === "" ||
-      nuevaCompra.producto.trim() === "" ||
-      nuevaCompra.cantidad === "" ||
-      nuevaCompra.monto === ""
-    ) {
-      alert("Por favor, complete todos los campos obligatorios.");
+  const cambiarCantidadProducto = (idProductoProveedor, cantidad) => {
+    if (cantidad === "" || Number(cantidad) < 1) {
       return;
     }
 
-    const compraGuardada = {
-      id: compras.length + 1,
-      numero: nuevaCompra.numero,
-      fecha: nuevaCompra.fecha,
-      proveedor: nuevaCompra.proveedor,
-      categoria: nuevaCompra.categoria,
-      producto: nuevaCompra.producto,
-      cantidad: Number(nuevaCompra.cantidad),
-      monto: Number(nuevaCompra.monto),
-      estado: nuevaCompra.estado,
-      descripcion: nuevaCompra.descripcion,
-    };
-
-    const nuevasCompras = [compraGuardada, ...compras];
-
-    setCompras(nuevasCompras);
-    setComprasFiltradas(nuevasCompras);
-    setMostrarModal(false);
+    setNuevaCompra((compraActual) => ({
+      ...compraActual,
+      productos: compraActual.productos.map((producto) =>
+        producto.ID_ProductoProveedor === idProductoProveedor
+          ? { ...producto, Cantidad: Number(cantidad) }
+          : producto
+      ),
+    }));
   };
 
-  const formatoDinero = (valor) => {
-    return `C$ ${Number(valor).toLocaleString("es-NI", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+  const totalProductos = useMemo(() => {
+    return nuevaCompra.productos.reduce(
+      (total, producto) =>
+        total + Number(producto.PrecioDeCompra || 0) * producto.Cantidad,
+      0
+    );
+  }, [nuevaCompra.productos]);
+
+  const costoEnvio = Number(nuevaCompra.costoEnvio || 0);
+  const totalCompra = totalProductos + costoEnvio;
+
+  const validarCompra = () => {
+    if (!nuevaCompra.proveedor) return "Debes seleccionar un proveedor.";
+    if (!nuevaCompra.fecha) return "Debes seleccionar una fecha.";
+    if (!nuevaCompra.estado) return "Debes seleccionar un estado.";
+    if (nuevaCompra.productos.length === 0) {
+      return "Debes agregar al menos un producto a la compra.";
+    }
+    if (costoEnvio < 0) return "El costo de envío no puede ser negativo.";
+    if (totalCompra <= 0) return "El total de la compra debe ser mayor que cero.";
+
+    return "";
+  };
+
+  const guardarCompra = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMensaje("");
+
+    const errorValidacion = validarCompra();
+
+    if (errorValidacion) {
+      setError(errorValidacion);
+      return;
+    }
+
+    const payload = {
+      ID_Proveedor: Number(nuevaCompra.proveedor),
+      ID_Empleado: 1,
+      FechaCompra: nuevaCompra.fecha,
+      Estado: nuevaCompra.estado,
+      Descripcion: nuevaCompra.descripcion.trim() || null,
+      CostoDeEnvio: costoEnvio,
+      productos: nuevaCompra.productos.map((producto) => ({
+        ID_ProductoProveedor: producto.ID_ProductoProveedor,
+        Cantidad: producto.Cantidad,
+      })),
+    };
+
+    setGuardando(true);
+
+    try {
+      const respuesta = await registrarCompraCompleta(payload);
+      setMensaje(
+        `${respuesta.mensaje} ID de compra: ${respuesta.ID_Compra}.`
+      );
+      cerrarModal();
+      await cargarCompras();
+    } catch (errorGuardado) {
+      console.error("Error al guardar compra:", errorGuardado);
+      setError(errorGuardado.message || "No se pudo guardar la compra.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const recibirCompra = async (idCompra) => {
+    setError("");
+    setMensaje("");
+    setCompraProcesando(idCompra);
+
+    try {
+      const compraActualizada = await marcarCompraRecibida(idCompra);
+      setMensaje(`Compra ${compraActualizada.ID_Compra} marcada como recibida.`);
+      await cargarCompras();
+    } catch (errorRecibir) {
+      console.error("Error al marcar compra como recibida:", errorRecibir);
+      setError(
+        errorRecibir.message || "No se pudo marcar la compra como recibida."
+      );
+    } finally {
+      setCompraProcesando(null);
+    }
+  };
+
+  const obtenerClaseEstado = (estado) => {
+    return estado === "Recibida" ? "estado-recibida" : "estado-pendiente";
   };
 
   return (
@@ -253,32 +363,36 @@ function Compras() {
         <p>Controla las compras realizadas a proveedores.</p>
       </div>
 
+      {cargando && <p className="estado-compras-mensaje">Cargando compras...</p>}
+      {error && <p className="error-compras">{error}</p>}
+      {mensaje && <p className="exito-compras">{mensaje}</p>}
+
       <div className="compras-resumen">
         <article className="compra-card">
           <div>
             <p>Compras del mes</p>
-            <h3>{formatoDinero(totalComprasMes)}</h3>
+            <h3>{formatoDinero(resumen.compras_mes)}</h3>
           </div>
         </article>
 
         <article className="compra-card">
           <div>
             <p>Órdenes registradas</p>
-            <h3>{ordenesRegistradas}</h3>
+            <h3>{resumen.ordenes_registradas}</h3>
           </div>
         </article>
 
         <article className="compra-card">
           <div>
             <p>Monto invertido</p>
-            <h3>{formatoDinero(totalComprasMes)}</h3>
+            <h3>{formatoDinero(resumen.monto_invertido)}</h3>
           </div>
         </article>
 
         <article className="compra-card">
           <div>
             <p>Proveedores activos</p>
-            <h3>{proveedoresActivos}</h3>
+            <h3>{resumen.proveedores_activos}</h3>
           </div>
         </article>
       </div>
@@ -289,7 +403,7 @@ function Compras() {
           <input
             type="text"
             name="busqueda"
-            placeholder="Buscar por número, proveedor o producto"
+            placeholder="Buscar por ID, proveedor o producto"
             value={filtros.busqueda}
             onChange={manejarFiltro}
           />
@@ -304,8 +418,8 @@ function Compras() {
           >
             <option value="">Todos los proveedores</option>
             {proveedores.map((proveedor) => (
-              <option key={proveedor} value={proveedor}>
-                {proveedor}
+              <option key={proveedor.ID_Proveedor} value={proveedor.ID_Proveedor}>
+                {proveedor.NombreEmpresa}
               </option>
             ))}
           </select>
@@ -354,78 +468,58 @@ function Compras() {
                   <th>No. compra</th>
                   <th>Fecha</th>
                   <th>Proveedor</th>
-                  <th>Producto principal</th>
+                  <th>Productos</th>
                   <th>Cantidad</th>
+                  <th>Envío</th>
                   <th>Monto</th>
                   <th>Estado</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
 
               <tbody>
-                {comprasFiltradas.length > 0 ? (
-                  comprasFiltradas.map((compra) => (
-                    <tr key={compra.id}>
-                      <td>{compra.numero}</td>
+                {compras.length > 0 ? (
+                  compras.map((compra) => (
+                    <tr key={compra.ID_Compra}>
+                      <td>{compra.ID_Compra}</td>
                       <td>{compra.fecha}</td>
                       <td>{compra.proveedor}</td>
-                      <td>{compra.producto}</td>
-                      <td>{compra.cantidad}</td>
+                      <td>{compra.producto_principal}</td>
+                      <td>{compra.cantidad_total}</td>
+                      <td>{formatoDinero(compra.costo_envio)}</td>
                       <td>{formatoDinero(compra.monto)}</td>
                       <td>
-                        <span
-                          className={
-                            compra.estado === "Recibida"
-                              ? "estado-recibida"
-                              : "estado-pendiente"
-                          }
-                        >
+                        <span className={obtenerClaseEstado(compra.estado)}>
                           {compra.estado}
                         </span>
+                      </td>
+                      <td>
+                        {compra.estado === "Pendiente" ? (
+                          <button
+                            type="button"
+                            className="btn-recibir-compra"
+                            disabled={compraProcesando === compra.ID_Compra}
+                            onClick={() => recibirCompra(compra.ID_Compra)}
+                          >
+                            {compraProcesando === compra.ID_Compra
+                              ? "Actualizando..."
+                              : "Marcar recibida"}
+                          </button>
+                        ) : (
+                          <span className="sin-accion-compra">Recibida</span>
+                        )}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td className="sin-resultados" colSpan="7">
+                    <td className="sin-resultados" colSpan="9">
                       No se encontraron compras.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="resumen-inferior">
-        <div className="grafico-compras">
-          <h2>Resumen de compras</h2>
-
-          <div className="barras-compras">
-            <div className="barra-item">
-              <div className="barra" style={{ height: "78%" }}></div>
-              <p>Blusas</p>
-            </div>
-
-            <div className="barra-item">
-              <div className="barra" style={{ height: "45%" }}></div>
-              <p>Pantalones</p>
-            </div>
-
-            <div className="barra-item">
-              <div className="barra" style={{ height: "60%" }}></div>
-              <p>Vestidos</p>
-            </div>
-
-            <div className="barra-item">
-              <div className="barra" style={{ height: "28%" }}></div>
-              <p>Accesorios</p>
-            </div>
-
-            <div className="barra-item">
-              <div className="barra" style={{ height: "40%" }}></div>
-              <p>Camisas</p>
-            </div>
           </div>
         </div>
       </div>
@@ -443,33 +537,6 @@ function Compras() {
 
             <form className="form-compra" onSubmit={guardarCompra}>
               <div className="campo-compra">
-                <label>No. compra</label>
-                <input
-                  type="text"
-                  name="numero"
-                  placeholder="Ej. C-00126"
-                  value={nuevaCompra.numero}
-                  onChange={manejarNuevaCompra}
-                />
-              </div>
-
-              <div className="campo-compra">
-                <label>Categoría</label>
-                <select
-                  name="categoria"
-                  value={nuevaCompra.categoria}
-                  onChange={manejarNuevaCompra}
-                >
-                  <option value="">Selecciona una categoría</option>
-                  {categorias.map((categoria) => (
-                    <option key={categoria} value={categoria}>
-                      {categoria}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="campo-compra">
                 <label>Proveedor</label>
                 <select
                   name="proveedor"
@@ -478,28 +545,13 @@ function Compras() {
                 >
                   <option value="">Selecciona un proveedor</option>
                   {proveedores.map((proveedor) => (
-                    <option key={proveedor} value={proveedor}>
-                      {proveedor}
+                    <option
+                      key={proveedor.ID_Proveedor}
+                      value={proveedor.ID_Proveedor}
+                    >
+                      {proveedor.NombreEmpresa}
                     </option>
                   ))}
-                </select>
-              </div>
-
-              <div className="campo-compra">
-                <label>Producto principal</label>
-                <select
-                  name="producto"
-                  value={nuevaCompra.producto}
-                  onChange={manejarNuevaCompra}
-                  disabled={nuevaCompra.categoria === ""}
-                >
-                  <option value="">Selecciona un producto</option>
-                  {nuevaCompra.categoria &&
-                    productosPorCategoria[nuevaCompra.categoria].map((producto) => (
-                      <option key={producto} value={producto}>
-                        {producto}
-                      </option>
-                    ))}
                 </select>
               </div>
 
@@ -510,30 +562,6 @@ function Compras() {
                   name="fecha"
                   min={obtenerFechaActual()}
                   value={nuevaCompra.fecha}
-                  onChange={manejarNuevaCompra}
-                />
-              </div>
-
-              <div className="campo-compra">
-                <label>Monto total</label>
-                <input
-                  type="number"
-                  name="monto"
-                  min="1"
-                  placeholder="Ej. 3500.00"
-                  value={nuevaCompra.monto}
-                  onChange={manejarNuevaCompra}
-                />
-              </div>
-
-              <div className="campo-compra">
-                <label>Cantidad de productos</label>
-                <input
-                  type="number"
-                  name="cantidad"
-                  min="1"
-                  placeholder="Ej. 10"
-                  value={nuevaCompra.cantidad}
                   onChange={manejarNuevaCompra}
                 />
               </div>
@@ -550,6 +578,137 @@ function Compras() {
                 </select>
               </div>
 
+              <div className="campo-compra">
+                <label>Costo envío</label>
+                <input
+                  type="number"
+                  name="costoEnvio"
+                  min="0"
+                  step="0.01"
+                  placeholder="Ej. 150.00"
+                  value={nuevaCompra.costoEnvio}
+                  onChange={manejarNuevaCompra}
+                />
+              </div>
+
+              <div className="campo-compra campo-producto-compra">
+                <label>Producto</label>
+                <select
+                  name="productoSeleccionado"
+                  value={nuevaCompra.productoSeleccionado}
+                  onChange={manejarNuevaCompra}
+                  disabled={!nuevaCompra.proveedor || cargandoProductos}
+                >
+                  <option value="">
+                    {cargandoProductos
+                      ? "Cargando productos..."
+                      : "Selecciona un producto"}
+                  </option>
+                  {productosProveedor.map((producto) => (
+                    <option
+                      key={producto.ID_ProductoProveedor}
+                      value={producto.ID_ProductoProveedor}
+                    >
+                      {producto.Nombre} - {producto.Talla || "Sin talla"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="campo-compra">
+                <label>Cantidad</label>
+                <input
+                  type="number"
+                  name="cantidad"
+                  min="1"
+                  placeholder="Ej. 10"
+                  value={nuevaCompra.cantidad}
+                  onChange={manejarNuevaCompra}
+                />
+              </div>
+
+              <div className="producto-seleccionado-info">
+                <span>Talla</span>
+                <strong>{productoSeleccionado?.Talla || "Sin producto"}</strong>
+                <span>Costo</span>
+                <strong>
+                  {productoSeleccionado
+                    ? formatoDinero(productoSeleccionado.PrecioDeCompra)
+                    : "C$ 0.00"}
+                </strong>
+              </div>
+
+              <div className="acciones-producto-compra">
+                <button type="button" onClick={agregarProducto}>
+                  Agregar producto
+                </button>
+              </div>
+
+              <div className="productos-compra-lista">
+                <h3>Productos de la compra</h3>
+
+                <div className="tabla-productos-compra">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Talla</th>
+                        <th>Costo</th>
+                        <th>Cantidad</th>
+                        <th>Subtotal</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {nuevaCompra.productos.map((producto) => (
+                        <tr key={producto.ID_ProductoProveedor}>
+                          <td>{producto.Nombre}</td>
+                          <td>{producto.Talla || "Sin talla"}</td>
+                          <td>{formatoDinero(producto.PrecioDeCompra)}</td>
+                          <td>
+                            <input
+                              type="number"
+                              min="1"
+                              value={producto.Cantidad}
+                              onChange={(e) =>
+                                cambiarCantidadProducto(
+                                  producto.ID_ProductoProveedor,
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </td>
+                          <td>
+                            {formatoDinero(
+                              Number(producto.PrecioDeCompra) *
+                                producto.Cantidad
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                quitarProducto(producto.ID_ProductoProveedor)
+                              }
+                            >
+                              ×
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+
+                      {nuevaCompra.productos.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="sin-resultados">
+                            Aún no has agregado productos.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <div className="campo-compra campo-descripcion">
                 <label>Descripción opcional</label>
                 <textarea
@@ -558,6 +717,15 @@ function Compras() {
                   value={nuevaCompra.descripcion}
                   onChange={manejarNuevaCompra}
                 ></textarea>
+              </div>
+
+              <div className="total-compra-modal">
+                <span>Total productos</span>
+                <strong>{formatoDinero(totalProductos)}</strong>
+                <span>Envío</span>
+                <strong>{formatoDinero(costoEnvio)}</strong>
+                <span>Total compra</span>
+                <strong>{formatoDinero(totalCompra)}</strong>
               </div>
 
               <div className="modal-compra-botones">
@@ -569,8 +737,8 @@ function Compras() {
                   Cancelar
                 </button>
 
-                <button type="submit" className="btn-guardar">
-                  Guardar compra
+                <button type="submit" className="btn-guardar" disabled={guardando}>
+                  {guardando ? "Guardando..." : "Guardar compra"}
                 </button>
               </div>
             </form>

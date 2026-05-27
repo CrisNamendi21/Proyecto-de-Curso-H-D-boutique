@@ -12,14 +12,17 @@ Se corrigio y mejoro funcionalmente la pantalla NuevaVenta sin redisenar la inte
   - Se corrigio el boton `-` para eliminar el producto cuando la cantidad es 1.
   - Se agrego municipio para delivery, dependiente del departamento seleccionado.
   - Se agregaron validaciones de pago mixto y municipio en delivery.
+  - Se agrego busqueda y autocompletado de cliente existente para delivery.
 
 - `frontend/src/pages/duena/NuevaVenta/NuevaVenta.css`
   - Se agregaron estilos minimos para el select deshabilitado y mensajes de ayuda del municipio.
+  - Se agregaron estilos minimos para sugerencias de clientes existentes.
 
 - `frontend/src/api/api.js`
   - Se agregaron helpers para municipios:
     - `obtenerMunicipios()`
     - `obtenerMunicipiosPorDepartamento(idDepartamento)`
+  - Se agrego `buscarClientes(busqueda)`.
 
 - `backend/app/routers/catalogos/municipio_router.py`
   - Se agrego `GET /municipios/departamento/{id_departamento}` para cargar municipios por departamento.
@@ -102,18 +105,47 @@ Payload esperado para delivery:
 }
 ```
 
-El backend valida `ID_Municipio`, pero actualmente no lo guarda porque la tabla real `Direccion_clientes` no tiene la columna `ID_Municipio`.
+El backend valida y guarda `ID_Municipio` en `Direccion_clientes`.
 
-## 6. Endpoints utilizados o creados
+## 6. Autocompletado de cliente en delivery
+
+En el flujo de delivery se agrego busqueda de clientes existentes.
+
+Flujo:
+
+1. El usuario selecciona `Delivery`.
+2. Al escribir al menos 2 caracteres en `Nombres`, el frontend espera 300 ms y consulta clientes reales.
+3. Se muestran hasta 5 sugerencias.
+4. Al seleccionar una sugerencia, se autocompletan:
+   - Nombres.
+   - Apellidos.
+   - Telefono.
+   - Direccion.
+   - Departamento.
+   - Municipio.
+5. El municipio se carga despues del departamento para respetar la dependencia real.
+
+Endpoint usado:
+
+```text
+GET /clientes/buscar?busqueda=
+```
+
+Si el cliente seleccionado tiene datos completos de delivery y el usuario no modifica esos datos, NuevaVenta envia `ID_Cliente` en `POST /ventas/registrar-completa` para reutilizar el cliente existente y evitar duplicarlo.
+
+Si el cliente existente esta incompleto o el usuario modifica los datos, se envia el objeto `cliente` como antes para que el backend cree el cliente/direccion segun la logica actual.
+
+## 7. Endpoints utilizados o creados
 
 - `GET /productos/`
 - `GET /tipos-pago/`
 - `GET /departamentos/`
 - `GET /municipios/`
 - `GET /municipios/departamento/{id_departamento}`
+- `GET /clientes/buscar?busqueda=`
 - `POST /ventas/registrar-completa`
 
-## 7. Cambios backend
+## 8. Cambios backend
 
 Cambios en municipios:
 
@@ -133,12 +165,19 @@ Cambios en venta completa:
 }
 ```
 
-Limitacion actual:
+Cambios en clientes:
 
-- No se modifico la tabla `Direccion_clientes` automaticamente.
-- Para guardar municipio en direcciones se debe aplicar primero el script `docs/sql/agregar-id-municipio-direccion-clientes.sql` y luego actualizar el modelo/schema de direccion cliente.
+- Se agrego `GET /clientes/buscar`.
+- Devuelve clientes reales con datos de direccion, departamento y municipio.
+- La busqueda se limita a 5 resultados.
+- Con busqueda de menos de 2 caracteres devuelve lista vacia.
 
-## 8. Pruebas realizadas
+Cambios en venta completa:
+
+- Si se recibe `ID_Cliente`, el backend reutiliza ese cliente.
+- Para delivery con cliente existente se valida que tenga direccion, departamento y municipio registrados.
+
+## 9. Pruebas realizadas
 
 - `backend/venv/Scripts/python.exe -m compileall -q backend/app`: correcto.
 - `npm run build`: correcto.
@@ -148,19 +187,21 @@ Limitacion actual:
 - `GET /productos/`: correcto, productos siguen respondiendo con `PrecioUnitario`.
 - `GET /tipos-pago/`: correcto, devuelve Efectivo y Transferencia.
 - `openapi.json`: correcto, aparecen `/municipios/`, `/municipios/departamento/{id_departamento}`, `/dashboard/` y `/ventas/registrar-completa`.
+- `GET /clientes/buscar?busqueda=Jea`: correcto, devuelve clientes reales.
+- `GET /clientes/buscar?busqueda=a`: correcto, devuelve lista vacia por texto corto.
+- `GET /clientes/buscar?busqueda=zzzinexistentecodex`: correcto, devuelve lista vacia.
 - `POST /ventas/registrar-completa` sin municipio en delivery: correcto, devuelve 400.
 - `POST /ventas/registrar-completa` con municipio de otro departamento: correcto, devuelve 400.
 
 No se hicieron pruebas POST exitosas para no insertar ventas adicionales ni descontar stock durante esta fase.
 
-## 9. Limitaciones o deuda tecnica
+## 10. Limitaciones o deuda tecnica
 
-- `Direccion_clientes` no tiene columna `ID_Municipio`.
-- El backend valida municipio para delivery, pero no lo guarda todavia en la direccion.
-- Queda pendiente ejecutar una migracion o script SQL controlado para agregar `ID_Municipio`.
-- Despues de agregar la columna, se debe actualizar `direccion_cliente_model.py`, `direccion_cliente_schema.py` y el guardado de direcciones para persistir el municipio.
+- Clientes antiguos pueden no tener `ID_Municipio` si fueron creados antes de agregar esa columna.
+- Si un cliente existente esta incompleto, el autocompletado llena lo disponible y el usuario debe completar lo faltante.
+- Para evitar sobrescribir datos automaticamente, NuevaVenta solo envia `ID_Cliente` cuando el cliente seleccionado tiene datos completos y no fueron modificados.
 
-## 10. Pendientes
+## 11. Pendientes
 
 Siguiente modulo de Fase 5:
 

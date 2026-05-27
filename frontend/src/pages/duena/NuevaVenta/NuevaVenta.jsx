@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  buscarClientes,
   obtenerDepartamentos,
   obtenerMunicipiosPorDepartamento,
   obtenerProductos,
@@ -24,6 +25,7 @@ function NuevaVenta() {
   const [municipios, setMunicipios] = useState([]);
   const [cargandoDatos, setCargandoDatos] = useState(true);
   const [cargandoMunicipios, setCargandoMunicipios] = useState(false);
+  const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [registrandoVenta, setRegistrandoVenta] = useState(false);
 
   const [tipoCliente, setTipoCliente] = useState("generico");
@@ -33,6 +35,10 @@ function NuevaVenta() {
   const [direccionCliente, setDireccionCliente] = useState("");
   const [departamentoCliente, setDepartamentoCliente] = useState("");
   const [municipioCliente, setMunicipioCliente] = useState("");
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [sugerenciasClientes, setSugerenciasClientes] = useState([]);
+  const [mostrarSugerenciasClientes, setMostrarSugerenciasClientes] =
+    useState(false);
   const [fecha, setFecha] = useState(obtenerFechaActual());
   const [metodoPago, setMetodoPago] = useState("");
   const [referenciaPago, setReferenciaPago] = useState("");
@@ -124,10 +130,60 @@ function NuevaVenta() {
     cargarMunicipios();
   }, [departamentoCliente, tipoCliente]);
 
+  useEffect(() => {
+    if (tipoCliente !== "delivery") {
+      setSugerenciasClientes([]);
+      setMostrarSugerenciasClientes(false);
+      setBuscandoClientes(false);
+      return;
+    }
+
+    const termino = nombresCliente.trim();
+
+    if (
+      clienteSeleccionado &&
+      String(clienteSeleccionado.Nombres || "") === termino
+    ) {
+      setSugerenciasClientes([]);
+      setMostrarSugerenciasClientes(false);
+      setBuscandoClientes(false);
+      return;
+    }
+
+    if (termino.length < 2) {
+      setSugerenciasClientes([]);
+      setMostrarSugerenciasClientes(false);
+      setBuscandoClientes(false);
+      return;
+    }
+
+    const temporizador = setTimeout(async () => {
+      setBuscandoClientes(true);
+
+      try {
+        const clientesRespuesta = await buscarClientes(termino);
+        setSugerenciasClientes(clientesRespuesta || []);
+        setMostrarSugerenciasClientes(true);
+      } catch (error) {
+        setSugerenciasClientes([]);
+        setMostrarSugerenciasClientes(false);
+        mostrarMensaje(
+          error.message || "No se pudieron buscar clientes existentes.",
+          "error"
+        );
+      } finally {
+        setBuscandoClientes(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(temporizador);
+  }, [clienteSeleccionado, nombresCliente, tipoCliente]);
+
   const manejarTextoCliente = (setter) => (e) => {
     const valor = e.target.value;
 
     if (/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*$/.test(valor)) {
+      setClienteSeleccionado(null);
       setter(valor);
     }
   };
@@ -143,6 +199,7 @@ function NuevaVenta() {
   const manejarDepartamentoCliente = (e) => {
     setDepartamentoCliente(e.target.value);
     setMunicipioCliente("");
+    setClienteSeleccionado(null);
     setMensaje("");
   };
 
@@ -156,9 +213,72 @@ function NuevaVenta() {
     setDireccionCliente("");
     setDepartamentoCliente("");
     setMunicipioCliente("");
+    setClienteSeleccionado(null);
+    setSugerenciasClientes([]);
+    setMostrarSugerenciasClientes(false);
     setMunicipios([]);
     setCostoDelivery("");
     setMensaje("");
+  };
+
+  const clienteTieneDeliveryCompleto = (cliente) => {
+    return Boolean(
+      cliente?.ID_Cliente &&
+        cliente?.Nombres &&
+        cliente?.Apellidos &&
+        cliente?.NumeroTelefono &&
+        cliente?.Direccion &&
+        cliente?.ID_Departamento &&
+        cliente?.ID_Municipio
+    );
+  };
+
+  const seleccionarClienteSugerido = async (cliente) => {
+    setNombresCliente(cliente.Nombres || "");
+    setApellidosCliente(cliente.Apellidos || "");
+    setTelefonoCliente(cliente.NumeroTelefono || "");
+    setDireccionCliente(cliente.Direccion || "");
+    setClienteSeleccionado(cliente);
+    setSugerenciasClientes([]);
+    setMostrarSugerenciasClientes(false);
+    setMensaje("");
+
+    if (cliente.ID_Departamento) {
+      const idDepartamento = String(cliente.ID_Departamento);
+      setDepartamentoCliente(idDepartamento);
+
+      try {
+        setCargandoMunicipios(true);
+        const municipiosRespuesta = await obtenerMunicipiosPorDepartamento(
+          idDepartamento
+        );
+
+        setMunicipios(municipiosRespuesta || []);
+        setMunicipioCliente(
+          cliente.ID_Municipio ? String(cliente.ID_Municipio) : ""
+        );
+      } catch (error) {
+        setMunicipios([]);
+        setMunicipioCliente("");
+        mostrarMensaje(
+          error.message || "No se pudieron cargar los municipios del cliente.",
+          "error"
+        );
+      } finally {
+        setCargandoMunicipios(false);
+      }
+      return;
+    }
+
+    setDepartamentoCliente("");
+    setMunicipioCliente("");
+    setMunicipios([]);
+  };
+
+  const describirUbicacionCliente = (cliente) => {
+    const partes = [cliente.Departamento, cliente.Municipio].filter(Boolean);
+
+    return partes.length > 0 ? partes.join(", ") : "Sin ubicación registrada";
   };
 
   const productosFiltrados = productos.filter((producto) =>
@@ -167,6 +287,10 @@ function NuevaVenta() {
 
   const obtenerPrecioProducto = (producto) => {
     return Number(producto.PrecioUnitario) || 0;
+  };
+
+  const obtenerTallaProducto = (producto) => {
+    return producto.Talla || producto.NombreTalla || "Sin talla";
   };
 
   const agregarProducto = (producto) => {
@@ -216,6 +340,8 @@ function NuevaVenta() {
         ID_Producto: producto.ID_Producto,
         Nombre: producto.Nombre,
         Stock: producto.Stock,
+        ID_Talla: producto.ID_Talla,
+        Talla: obtenerTallaProducto(producto),
         PrecioUnitario: precio,
         Cantidad: 1,
       },
@@ -280,6 +406,9 @@ function NuevaVenta() {
     setDireccionCliente("");
     setDepartamentoCliente("");
     setMunicipioCliente("");
+    setClienteSeleccionado(null);
+    setSugerenciasClientes([]);
+    setMostrarSugerenciasClientes(false);
     setMunicipios([]);
     setFecha(obtenerFechaActual());
     setMetodoPago("");
@@ -447,6 +576,22 @@ function NuevaVenta() {
       pagos: construirPagos(),
     };
 
+    if (
+      tipoCliente === "delivery" &&
+      clienteSeleccionado &&
+      clienteTieneDeliveryCompleto(clienteSeleccionado) &&
+      String(clienteSeleccionado.Nombres || "") === nombresCliente.trim() &&
+      String(clienteSeleccionado.Apellidos || "") === apellidosCliente.trim() &&
+      String(clienteSeleccionado.NumeroTelefono || "") === telefonoCliente.trim() &&
+      String(clienteSeleccionado.Direccion || "") === direccionCliente.trim() &&
+      String(clienteSeleccionado.ID_Departamento || "") ===
+        String(departamentoCliente) &&
+      String(clienteSeleccionado.ID_Municipio || "") === String(municipioCliente)
+    ) {
+      payload.ID_Cliente = clienteSeleccionado.ID_Cliente;
+      return payload;
+    }
+
     if (tipoCliente !== "generico") {
       payload.cliente = {
         Nombres: nombresCliente.trim(),
@@ -552,7 +697,43 @@ function NuevaVenta() {
               placeholder="Nombres del cliente"
               value={nombresCliente}
               onChange={manejarTextoCliente(setNombresCliente)}
+              onFocus={() => {
+                if (
+                  tipoCliente === "delivery" &&
+                  sugerenciasClientes.length > 0
+                ) {
+                  setMostrarSugerenciasClientes(true);
+                }
+              }}
             />
+
+            {tipoCliente === "delivery" &&
+              mostrarSugerenciasClientes &&
+              (buscandoClientes || sugerenciasClientes.length > 0) && (
+                <div className="sugerencias-clientes">
+                  {buscandoClientes && (
+                    <div className="sugerencia-cliente estado-sugerencia">
+                      Buscando clientes...
+                    </div>
+                  )}
+
+                  {!buscandoClientes &&
+                    sugerenciasClientes.map((cliente) => (
+                      <button
+                        key={cliente.ID_Cliente}
+                        type="button"
+                        className="sugerencia-cliente"
+                        onClick={() => seleccionarClienteSugerido(cliente)}
+                      >
+                        <strong>{cliente.NombreCompleto}</strong>
+                        <span>
+                          {cliente.NumeroTelefono || "Sin teléfono"} —{" "}
+                          {describirUbicacionCliente(cliente)}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              )}
           </div>
 
           <div className="campo-grupo">
@@ -674,6 +855,7 @@ function NuevaVenta() {
               <thead>
                 <tr>
                   <th>Producto</th>
+                  <th>Talla</th>
                   <th>Precio</th>
                   <th>Stock</th>
                   <th>Acción</th>
@@ -683,7 +865,7 @@ function NuevaVenta() {
               <tbody>
                 {cargandoDatos ? (
                   <tr>
-                    <td colSpan="4" className="sin-datos">
+                    <td colSpan="5" className="sin-datos">
                       Cargando productos...
                     </td>
                   </tr>
@@ -693,6 +875,7 @@ function NuevaVenta() {
                       <td>
                         <strong>{producto.Nombre}</strong>
                       </td>
+                      <td>{obtenerTallaProducto(producto)}</td>
                       <td>{formatearDinero(producto.PrecioUnitario || 0)}</td>
                       <td>{producto.Stock}</td>
                       <td>
@@ -710,7 +893,7 @@ function NuevaVenta() {
 
                 {!cargandoDatos && productosFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="sin-datos">
+                    <td colSpan="5" className="sin-datos">
                       No se encontraron productos.
                     </td>
                   </tr>
@@ -741,6 +924,7 @@ function NuevaVenta() {
                 <thead>
                   <tr>
                     <th>Producto</th>
+                    <th>Talla</th>
                     <th>Precio</th>
                     <th>Cantidad</th>
                     <th>Subtotal</th>
@@ -754,6 +938,7 @@ function NuevaVenta() {
                       <td>
                         <strong>{producto.Nombre}</strong>
                       </td>
+                      <td>{producto.Talla || "Sin talla"}</td>
                       <td>{formatearDinero(producto.PrecioUnitario)}</td>
                       <td>
                         <div className="control-cantidad">
@@ -795,7 +980,7 @@ function NuevaVenta() {
 
                   {productosVenta.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="sin-datos">
+                      <td colSpan="6" className="sin-datos">
                         Aún no has agregado productos.
                       </td>
                     </tr>

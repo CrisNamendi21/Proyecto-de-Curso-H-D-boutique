@@ -1,5 +1,20 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  crearProductoCompleto,
+  obtenerCategorias,
+  obtenerProductosInventario,
+  obtenerProveedores,
+  obtenerResumenInventario,
+  obtenerTallas,
+} from "../../../api/api";
 import "./Productos.css";
+
+const resumenInicial = {
+  total_productos: 0,
+  valor_inventario: 0,
+  productos_bajos_stock: 0,
+  productos_sin_stock: 0,
+};
 
 function Productos() {
   const obtenerFechaActual = () => {
@@ -9,76 +24,28 @@ function Productos() {
     return fechaLocal.toISOString().split("T")[0];
   };
 
-  const obtenerCategoriaAutomatica = (nombre) => {
-    const texto = nombre.toLowerCase();
-
-    if (texto.includes("vestido")) return "Vestidos";
-    if (texto.includes("blusa")) return "Blusas";
-    if (texto.includes("pantalón") || texto.includes("pantalon")) return "Pantalones";
-    if (texto.includes("camisa")) return "Camisas";
-    if (texto.includes("falda")) return "Faldas";
-    if (texto.includes("short")) return "Shorts";
-    if (texto.includes("top")) return "Tops";
-
-    return "";
-  };
-
-  const obtenerEstadoAutomatico = (stock) => {
-    const cantidad = Number(stock);
-
-    if (cantidad === 0) return "Sin stock";
-    if (cantidad > 0 && cantidad <= 5) return "Bajo stock";
-
-    return "En stock";
-  };
-/*calculo de ganancias*/
-  const calcularPrecioVenta = (costo) => {
-    if (costo === "") return "";
-
-    const precio = Number(costo) * 1.15;
-    return precio.toFixed(2);
-  };
+  const crearFormularioVacio = () => ({
+    nombre: "",
+    fecha: obtenerFechaActual(),
+    idCategoria: "",
+    idTalla: "",
+    idProveedor: "",
+    descripcion: "",
+    precioVenta: "",
+    costo: "",
+    stock: "",
+  });
 
   const [mostrarModal, setMostrarModal] = useState(false);
-
-  const [productos, setProductos] = useState([
-    {
-      nombre: "Vestido Floral",
-      categoria: "Vestidos",
-      fecha: obtenerFechaActual(),
-      precioVenta: 1250,
-      costo: 700,
-      stock: 12,
-      estado: "En stock",
-    },
-    {
-      nombre: "Blusa Manga Larga",
-      categoria: "Blusas",
-      fecha: obtenerFechaActual(),
-      precioVenta: 950,
-      costo: 520,
-      stock: 8,
-      estado: "En stock",
-    },
-    {
-      nombre: "Pantalón Palazzo",
-      categoria: "Pantalones",
-      fecha: obtenerFechaActual(),
-      precioVenta: 1100,
-      costo: 600,
-      stock: 5,
-      estado: "Bajo stock",
-    },
-    {
-      nombre: "Camisa Oversize",
-      categoria: "Camisas",
-      fecha: obtenerFechaActual(),
-      precioVenta: 850,
-      costo: 450,
-      stock: 0,
-      estado: "Sin stock",
-    },
-  ]);
+  const [productos, setProductos] = useState([]);
+  const [resumen, setResumen] = useState(resumenInicial);
+  const [categorias, setCategorias] = useState([]);
+  const [tallas, setTallas] = useState([]);
+  const [proveedores, setProveedores] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
   const [filtros, setFiltros] = useState({
     nombre: "",
@@ -92,75 +59,124 @@ function Productos() {
     estado: "Todos los estados",
   });
 
-  const [nuevoProducto, setNuevoProducto] = useState({
-    nombre: "",
-    categoria: "",
-    fecha: obtenerFechaActual(),
-    descripcion: "",
-    precioVenta: "",
-    costo: "",
-    stock: "",
-  });
+  const [nuevoProducto, setNuevoProducto] = useState(crearFormularioVacio);
+
+  const formatearDinero = (valor) => {
+    return `C$ ${Number(valor || 0).toLocaleString("es-NI", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const calcularPrecioVenta = (costo) => {
+    if (costo === "") return "";
+
+    const precio = Number(costo) * 1.15;
+    return Number.isFinite(precio) ? precio.toFixed(2) : "";
+  };
+
+  const obtenerEstadoProducto = (producto) => {
+    if (producto.Estado === "INACTIVO") return "Inactivo";
+    if (Number(producto.Stock) === 0) return "Sin stock";
+    if (Number(producto.Stock) > 0 && Number(producto.Stock) <= 5) {
+      return "Bajo stock";
+    }
+
+    return "En stock";
+  };
+
+  const obtenerClaseEstado = (estado) => {
+    if (estado === "En stock") return "estado-stock";
+    if (estado === "Bajo stock") return "estado-bajo";
+    if (estado === "Sin stock") return "estado-sin";
+    return "estado-inactivo";
+  };
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    setError("");
+
+    try {
+      const [
+        productosRespuesta,
+        resumenRespuesta,
+        categoriasRespuesta,
+        tallasRespuesta,
+        proveedoresRespuesta,
+      ] = await Promise.all([
+        obtenerProductosInventario(),
+        obtenerResumenInventario(),
+        obtenerCategorias(),
+        obtenerTallas(),
+        obtenerProveedores(),
+      ]);
+
+      setProductos(productosRespuesta || []);
+      setResumen(resumenRespuesta || resumenInicial);
+      setCategorias(categoriasRespuesta || []);
+      setTallas(tallasRespuesta || []);
+      setProveedores(proveedoresRespuesta || []);
+    } catch (errorCarga) {
+      console.error("Error al cargar productos:", errorCarga);
+      setError(
+        errorCarga.message ||
+          "No se pudieron cargar los datos de productos e inventario."
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
 
   const abrirModal = () => {
+    setError("");
+    setMensaje("");
     setMostrarModal(true);
   };
 
   const cerrarModal = () => {
     setMostrarModal(false);
-
-    setNuevoProducto({
-      nombre: "",
-      categoria: "",
-      fecha: obtenerFechaActual(),
-      descripcion: "",
-      precioVenta: "",
-      costo: "",
-      stock: "",
-    });
+    setNuevoProducto(crearFormularioVacio());
+    setGuardando(false);
   };
 
   const manejarCambio = (e) => {
     const { name, value } = e.target;
 
     if (name === "nombre") {
-      const soloLetras = value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "");
-      const categoriaDetectada = obtenerCategoriaAutomatica(soloLetras);
-
-      setNuevoProducto({
-        ...nuevoProducto,
-        nombre: soloLetras,
-        categoria: categoriaDetectada,
-      });
-
+      const nombreLimpio = value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ0-9\s]/g, "");
+      setNuevoProducto((productoActual) => ({
+        ...productoActual,
+        nombre: nombreLimpio,
+      }));
       return;
     }
 
     if (name === "costo") {
-      const precioCalculado = calcularPrecioVenta(value);
-
-      setNuevoProducto({
-        ...nuevoProducto,
+      setNuevoProducto((productoActual) => ({
+        ...productoActual,
         costo: value,
-        precioVenta: precioCalculado,
-      });
-
+        precioVenta: calcularPrecioVenta(value),
+      }));
       return;
     }
 
-    setNuevoProducto({
-      ...nuevoProducto,
+    setNuevoProducto((productoActual) => ({
+      ...productoActual,
       [name]: value,
-    });
+    }));
   };
 
   const manejarCambioFiltro = (e) => {
     const { name, value } = e.target;
 
-    setFiltros({
-      ...filtros,
+    setFiltros((filtrosActuales) => ({
+      ...filtrosActuales,
       [name]: value,
-    });
+    }));
   };
 
   const aplicarFiltros = () => {
@@ -178,81 +194,100 @@ function Productos() {
     setFiltrosAplicados(filtrosVacios);
   };
 
-  const guardarProducto = (e) => {
-    e.preventDefault();
-
+  const validarNuevoProducto = () => {
     const fechaActual = obtenerFechaActual();
 
-    if (
-      nuevoProducto.nombre.trim() === "" ||
-      nuevoProducto.fecha === "" ||
-      nuevoProducto.costo === "" ||
-      nuevoProducto.stock === ""
-    ) {
-      alert("Por favor completa los campos obligatorios.");
-      return;
+    if (!nuevoProducto.nombre.trim()) {
+      return "El nombre del producto es obligatorio.";
     }
 
-    if (nuevoProducto.categoria === "") {
-      alert(
-        "No se pudo detectar la categoría. Escribe un nombre como camisa, vestido, blusa, pantalón, falda, short o top."
-      );
-      return;
+    if (!nuevoProducto.fecha) {
+      return "La fecha es obligatoria.";
     }
 
     if (nuevoProducto.fecha < fechaActual) {
-      alert("No puedes seleccionar una fecha anterior a la fecha actual.");
-      return;
+      return "No puedes seleccionar una fecha anterior a la fecha actual.";
     }
 
-    if (Number(nuevoProducto.costo) < 0 || Number(nuevoProducto.stock) < 0) {
-      alert("El costo y el stock no pueden ser negativos.");
-      return;
+    if (!nuevoProducto.idCategoria) {
+      return "Debes seleccionar una categoría.";
     }
 
-    const productoAgregado = {
-      nombre: nuevoProducto.nombre,
-      categoria: nuevoProducto.categoria,
-      fecha: nuevoProducto.fecha,
-      precioVenta: Number(nuevoProducto.precioVenta),
-      costo: Number(nuevoProducto.costo),
-      stock: Number(nuevoProducto.stock),
-      estado: obtenerEstadoAutomatico(nuevoProducto.stock),
-    };
+    if (!nuevoProducto.idTalla) {
+      return "Debes seleccionar una talla.";
+    }
 
-    setProductos([...productos, productoAgregado]);
-    cerrarModal();
+    if (!nuevoProducto.idProveedor) {
+      return "Debes seleccionar un proveedor.";
+    }
+
+    if (nuevoProducto.costo === "" || Number(nuevoProducto.costo) <= 0) {
+      return "El costo debe ser mayor que cero.";
+    }
+
+    if (nuevoProducto.stock === "" || Number(nuevoProducto.stock) < 0) {
+      return "El stock no puede ser negativo.";
+    }
+
+    return "";
   };
 
-  const productosFiltrados = productos.filter((producto) => {
-    const coincideNombre = producto.nombre
-      .toLowerCase()
-      .includes(filtrosAplicados.nombre.toLowerCase());
+  const guardarProducto = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMensaje("");
 
-    const coincideCategoria =
-      filtrosAplicados.categoria === "Todas las categorías" ||
-      producto.categoria === filtrosAplicados.categoria;
+    const errorValidacion = validarNuevoProducto();
 
-    const coincideEstado =
-      filtrosAplicados.estado === "Todos los estados" ||
-      producto.estado === filtrosAplicados.estado;
+    if (errorValidacion) {
+      setError(errorValidacion);
+      return;
+    }
 
-    return coincideNombre && coincideCategoria && coincideEstado;
-  });
+    const payload = {
+      ID_Categoria: Number(nuevoProducto.idCategoria),
+      ID_Talla: Number(nuevoProducto.idTalla),
+      Nombre: nuevoProducto.nombre.trim(),
+      Stock: Number(nuevoProducto.stock),
+      Estado: "ACTIVO",
+      Descripcion: nuevoProducto.descripcion.trim() || null,
+      ID_Proveedor: Number(nuevoProducto.idProveedor),
+      PrecioDeCompra: Number(nuevoProducto.costo),
+    };
 
-  const totalProductos = productos.length;
+    setGuardando(true);
 
-  const valorInventario = productos.reduce((total, producto) => {
-    return total + producto.precioVenta * producto.stock;
-  }, 0);
+    try {
+      await crearProductoCompleto(payload);
+      setMensaje("Producto creado correctamente.");
+      cerrarModal();
+      await cargarDatos();
+    } catch (errorGuardado) {
+      console.error("Error al guardar producto:", errorGuardado);
+      setError(errorGuardado.message || "No se pudo guardar el producto.");
+    } finally {
+      setGuardando(false);
+    }
+  };
 
-  const productosBajoStock = productos.filter(
-    (producto) => producto.stock > 0 && producto.stock <= 5
-  ).length;
+  const productosFiltrados = useMemo(() => {
+    return productos.filter((producto) => {
+      const coincideNombre = producto.Nombre.toLowerCase().includes(
+        filtrosAplicados.nombre.toLowerCase()
+      );
 
-  const productosSinStock = productos.filter(
-    (producto) => producto.stock === 0
-  ).length;
+      const coincideCategoria =
+        filtrosAplicados.categoria === "Todas las categorías" ||
+        String(producto.ID_Categoria) === String(filtrosAplicados.categoria);
+
+      const estadoProducto = obtenerEstadoProducto(producto);
+      const coincideEstado =
+        filtrosAplicados.estado === "Todos los estados" ||
+        estadoProducto === filtrosAplicados.estado;
+
+      return coincideNombre && coincideCategoria && coincideEstado;
+    });
+  }, [productos, filtrosAplicados]);
 
   return (
     <div className="productos-page">
@@ -267,28 +302,35 @@ function Productos() {
         </button>
       </div>
 
+      {cargando && (
+        <p className="estado-productos-mensaje">Cargando inventario...</p>
+      )}
+
+      {error && <p className="error-productos">{error}</p>}
+      {mensaje && <p className="exito-productos">{mensaje}</p>}
+
       <section className="productos-resumen">
         <article className="resumen-card">
           <span>Total de productos</span>
-          <h3>{totalProductos}</h3>
+          <h3>{resumen.total_productos}</h3>
           <p>Productos registrados</p>
         </article>
 
         <article className="resumen-card">
           <span>Valor del inventario</span>
-          <h3>C$ {valorInventario.toLocaleString()}</h3>
-          <p>Valor aproximado</p>
+          <h3>{formatearDinero(resumen.valor_inventario)}</h3>
+          <p>Valor al costo</p>
         </article>
 
         <article className="resumen-card">
           <span>Productos bajos en stock</span>
-          <h3>{productosBajoStock}</h3>
-          <p>Revisar existencias</p>
+          <h3>{resumen.productos_bajos_stock}</h3>
+          <p>Stock entre 1 y 5</p>
         </article>
 
         <article className="resumen-card">
           <span>Productos sin stock</span>
-          <h3>{productosSinStock}</h3>
+          <h3>{resumen.productos_sin_stock}</h3>
           <p>Necesitan reposición</p>
         </article>
       </section>
@@ -313,13 +355,14 @@ function Productos() {
             onChange={manejarCambioFiltro}
           >
             <option>Todas las categorías</option>
-            <option>Vestidos</option>
-            <option>Blusas</option>
-            <option>Pantalones</option>
-            <option>Camisas</option>
-            <option>Faldas</option>
-            <option>Shorts</option>
-            <option>Tops</option>
+            {categorias.map((categoria) => (
+              <option
+                key={categoria.ID_Categoria}
+                value={categoria.ID_Categoria}
+              >
+                {categoria.Categoria}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -334,6 +377,7 @@ function Productos() {
             <option>En stock</option>
             <option>Bajo stock</option>
             <option>Sin stock</option>
+            <option>Inactivo</option>
           </select>
         </div>
 
@@ -356,7 +400,8 @@ function Productos() {
             <tr>
               <th>Producto</th>
               <th>Categoría</th>
-              <th>Fecha</th>
+              <th>Talla</th>
+              <th>Proveedor</th>
               <th>Precio venta</th>
               <th>Costo</th>
               <th>Stock</th>
@@ -366,32 +411,35 @@ function Productos() {
 
           <tbody>
             {productosFiltrados.length > 0 ? (
-              productosFiltrados.map((producto, index) => (
-                <tr key={index}>
-                  <td>{producto.nombre}</td>
-                  <td>{producto.categoria}</td>
-                  <td>{producto.fecha}</td>
-                  <td>C$ {producto.precioVenta.toLocaleString()}</td>
-                  <td>C$ {producto.costo.toLocaleString()}</td>
-                  <td>{producto.stock}</td>
-                  <td>
-                    <span
-                      className={`estado-producto ${
-                        producto.estado === "En stock"
-                          ? "estado-stock"
-                          : producto.estado === "Bajo stock"
-                          ? "estado-bajo"
-                          : "estado-sin"
-                      }`}
-                    >
-                      {producto.estado}
-                    </span>
-                  </td>
-                </tr>
-              ))
+              productosFiltrados.map((producto) => {
+                const estadoProducto = obtenerEstadoProducto(producto);
+
+                return (
+                  <tr key={producto.ID_Producto}>
+                    <td>
+                      <strong>{producto.Nombre}</strong>
+                    </td>
+                    <td>{producto.Categoria || "Sin categoría"}</td>
+                    <td>{producto.Talla || "Sin talla"}</td>
+                    <td>{producto.Proveedor || "Sin proveedor"}</td>
+                    <td>{formatearDinero(producto.PrecioUnitario)}</td>
+                    <td>{formatearDinero(producto.PrecioDeCompra)}</td>
+                    <td>{producto.Stock}</td>
+                    <td>
+                      <span
+                        className={`estado-producto ${obtenerClaseEstado(
+                          estadoProducto
+                        )}`}
+                      >
+                        {estadoProducto}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="7" className="sin-resultados">
+                <td colSpan="8" className="sin-resultados">
                   No se encontraron productos con esos filtros.
                 </td>
               </tr>
@@ -406,7 +454,9 @@ function Productos() {
             <div className="modal-header">
               <h3>Agregar producto</h3>
 
-              <button onClick={cerrarModal}>×</button>
+              <button type="button" onClick={cerrarModal}>
+                ×
+              </button>
             </div>
 
             <form onSubmit={guardarProducto} className="form-producto">
@@ -434,13 +484,57 @@ function Productos() {
                 </div>
 
                 <div className="form-campo">
-                  <label>Categoría automática</label>
-                  <input
-                    type="text"
-                    value={nuevoProducto.categoria}
-                    placeholder="Se detecta según el nombre"
-                    readOnly
-                  />
+                  <label>Categoría</label>
+                  <select
+                    name="idCategoria"
+                    value={nuevoProducto.idCategoria}
+                    onChange={manejarCambio}
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categorias.map((categoria) => (
+                      <option
+                        key={categoria.ID_Categoria}
+                        value={categoria.ID_Categoria}
+                      >
+                        {categoria.Categoria}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-campo">
+                  <label>Talla</label>
+                  <select
+                    name="idTalla"
+                    value={nuevoProducto.idTalla}
+                    onChange={manejarCambio}
+                  >
+                    <option value="">Seleccionar talla</option>
+                    {tallas.map((talla) => (
+                      <option key={talla.ID_Talla} value={talla.ID_Talla}>
+                        {talla.Talla}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-campo">
+                  <label>Proveedor</label>
+                  <select
+                    name="idProveedor"
+                    value={nuevoProducto.idProveedor}
+                    onChange={manejarCambio}
+                  >
+                    <option value="">Seleccionar proveedor</option>
+                    {proveedores.map((proveedor) => (
+                      <option
+                        key={proveedor.ID_Proveedor}
+                        value={proveedor.ID_Proveedor}
+                      >
+                        {proveedor.NombreEmpresa}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-campo">
@@ -452,6 +546,7 @@ function Productos() {
                     value={nuevoProducto.costo}
                     onChange={manejarCambio}
                     min="0"
+                    step="0.01"
                   />
                 </div>
 
@@ -498,8 +593,8 @@ function Productos() {
                   Cancelar
                 </button>
 
-                <button type="submit" className="btn-guardar">
-                  Guardar producto
+                <button type="submit" className="btn-guardar" disabled={guardando}>
+                  {guardando ? "Guardando..." : "Guardar producto"}
                 </button>
               </div>
             </form>

@@ -8,6 +8,14 @@ class ResumenVentasDia(BaseModel):
     total_neto: float
 
 
+class ProductoVentaDia(BaseModel):
+    producto: str
+    talla: str
+    cantidad: int
+    precio: float
+    subtotal: float
+
+
 class VentaDiaItem(BaseModel):
     id_venta: int
     numero_venta: str
@@ -17,6 +25,7 @@ class VentaDiaItem(BaseModel):
     metodo_pago: str
     total: float
     productos: int
+    productos_detalle: list[ProductoVentaDia]
 
 
 class ProductoMasVendidoDia(BaseModel):

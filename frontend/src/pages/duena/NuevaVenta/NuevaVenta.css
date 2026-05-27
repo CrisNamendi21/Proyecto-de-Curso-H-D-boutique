@@ -33,6 +33,7 @@
 }
 
 .campo-grupo {
+  position: relative;
   background: #ffffff;
   border: 1px solid #f3d4e2;
   border-radius: 18px;
@@ -79,6 +80,66 @@
   color: #9b7d8a;
   font-size: 12.5px;
   font-weight: 700;
+}
+
+.sugerencias-clientes {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: calc(100% - 8px);
+  z-index: 12;
+  border: 1px solid #f1c8da;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(110, 89, 101, 0.16);
+  overflow: hidden;
+}
+
+.sugerencia-cliente {
+  width: 100%;
+  display: block;
+  border: none;
+  border-bottom: 1px solid #f8e7ef;
+  background: #ffffff;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sugerencia-cliente:last-child {
+  border-bottom: none;
+}
+
+.sugerencia-cliente:hover {
+  background: #fff6fb;
+}
+
+.sugerencia-cliente strong,
+.sugerencia-cliente span {
+  display: block;
+}
+
+.sugerencia-cliente strong {
+  color: #302932;
+  font-size: 13.5px;
+}
+
+.sugerencia-cliente span {
+  margin-top: 3px;
+  color: #8c6d7b;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.estado-sugerencia {
+  cursor: default;
+  color: #8c6d7b;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.estado-sugerencia:hover {
+  background: #ffffff;
 }
 
 .nueva-venta-contenido {
@@ -183,7 +244,7 @@
 }
 
 .tabla-productos-disponibles table {
-  min-width: 620px;
+  min-width: 700px;
 }
 
 .tabla-contenedor table {
@@ -260,7 +321,7 @@
 }
 
 .tabla-venta table {
-  min-width: 640px;
+  min-width: 720px;
 }
 
 .tabla-venta th {

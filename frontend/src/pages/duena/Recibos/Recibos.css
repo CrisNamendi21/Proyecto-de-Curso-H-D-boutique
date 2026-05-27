@@ -33,6 +33,27 @@ body {
   font-weight: 800;
 }
 
+.estado-recibos,
+.error-recibos {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.estado-recibos {
+  background: #ffffff;
+  border: 1px solid #f3d4e2;
+  color: #6e5965;
+}
+
+.error-recibos {
+  background: #fff0f6;
+  border: 1px solid #f8bbd7;
+  color: #b02663;
+}
+
 .recibos-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -415,29 +436,6 @@ body {
   background: #d62b75;
 }
 
-@media print {
-  body * {
-    visibility: hidden;
-  }
-
-  .vista-previa,
-  .vista-previa * {
-    visibility: visible;
-  }
-
-  .vista-previa {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    box-shadow: none;
-  }
-
-  .acciones-recibo {
-    display: none;
-  }
-}
-
 @media (max-width: 1150px) {
   body {
     overflow: auto;
@@ -619,6 +617,7 @@ body {
 
 .recibo-productos {
   margin-bottom: 20px;
+  overflow-x: auto;
 }
 
 .recibo-productos h3 {
@@ -630,6 +629,7 @@ body {
 
 .recibo-productos table {
   width: 100%;
+  min-width: 620px;
   border-collapse: collapse;
 }
 
@@ -735,43 +735,6 @@ body {
   border: none;
   background: linear-gradient(135deg, #f8bbd7, #d62b75);
   color: #ffffff;
-}
-
-@media print {
-  body * {
-    visibility: hidden !important;
-  }
-
-  .modal-recibo-fondo,
-  .modal-recibo-fondo * {
-    visibility: visible !important;
-  }
-
-  .modal-recibo-fondo {
-    position: static !important;
-    inset: auto !important;
-    background: #ffffff !important;
-    padding: 0 !important;
-    display: block !important;
-  }
-
-  .modal-recibo {
-    width: 100% !important;
-    max-height: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-  }
-
-  .recibo-completo {
-    overflow: visible !important;
-    padding: 24px !important;
-  }
-
-  .no-imprimir,
-  .modal-recibo-acciones {
-    display: none !important;
-  }
 }
 
 @media (max-width: 650px) {

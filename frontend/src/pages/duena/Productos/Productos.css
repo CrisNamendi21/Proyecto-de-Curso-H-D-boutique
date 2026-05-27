@@ -184,6 +184,39 @@
   color: #d93468;
 }
 
+.estado-inactivo {
+  background: #eef1f2;
+  color: #607176;
+}
+
+.estado-productos-mensaje,
+.error-productos,
+.exito-productos {
+  margin: 0 0 16px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.estado-productos-mensaje {
+  background: #fff1f7;
+  color: #8c4760;
+  border: 1px solid #f3cbd9;
+}
+
+.error-productos {
+  background: #ffe9ef;
+  color: #b92150;
+  border: 1px solid #f2b6c9;
+}
+
+.exito-productos {
+  background: #e8f8ec;
+  color: #2f7d42;
+  border: 1px solid #bae3c3;
+}
+
 /* MODAL PRODUCTO */
 
 .modal-fondo {
@@ -200,7 +233,10 @@
 }
 
 .modal-producto {
-  width: 620px;
+  width: 720px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   background: white;
   border-radius: 16px;
   padding: 22px;
@@ -301,6 +337,10 @@
   box-shadow: 0 8px 18px rgba(236, 63, 124, 0.25);
 }
 
+.btn-guardar:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 
 .form-campo input[readonly] {
   background: #fff1f7;

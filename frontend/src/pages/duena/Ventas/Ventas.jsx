@@ -43,6 +43,10 @@ function Ventas() {
     })}`;
   };
 
+  const obtenerNumeroVentaReal = (venta) => {
+    return venta?.id_venta ?? venta?.ID_Venta ?? "Sin ID";
+  };
+
   const cargarVentas = async (filtrosConsulta = filtros) => {
     if (!filtrosConsulta.fecha) {
       setErrorVentas("Debes seleccionar una fecha.");
@@ -247,7 +251,7 @@ function Ventas() {
                   {datosVentas.ventas.map((venta) => (
                     <tr key={venta.id_venta}>
                       <td>{venta.hora}</td>
-                      <td>{venta.numero_venta}</td>
+                      <td>{obtenerNumeroVentaReal(venta)}</td>
                       <td>{venta.cliente}</td>
                       <td>
                         <span className={obtenerClaseMetodo(venta.metodo_pago)}>
@@ -386,7 +390,7 @@ function Ventas() {
             <div className="detalle-grid">
               <div>
                 <span>No. venta</span>
-                <strong>{ventaSeleccionada.numero_venta}</strong>
+                <strong>{obtenerNumeroVentaReal(ventaSeleccionada)}</strong>
               </div>
 
               <div>
@@ -413,6 +417,45 @@ function Ventas() {
                 <span>Total</span>
                 <strong>{formatearDinero(ventaSeleccionada.total)}</strong>
               </div>
+            </div>
+
+            <div className="detalle-productos-venta">
+              <h3>Productos vendidos</h3>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Talla</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {(ventaSeleccionada.productos_detalle || []).map(
+                    (producto) => (
+                      <tr key={`${producto.producto}-${producto.subtotal}`}>
+                        <td>{producto.producto}</td>
+                        <td>{producto.talla || "Sin talla"}</td>
+                        <td>{producto.cantidad}</td>
+                        <td>{formatearDinero(producto.precio)}</td>
+                        <td>{formatearDinero(producto.subtotal)}</td>
+                      </tr>
+                    )
+                  )}
+
+                  {(!ventaSeleccionada.productos_detalle ||
+                    ventaSeleccionada.productos_detalle.length === 0) && (
+                    <tr>
+                      <td colSpan="5" className="sin-datos">
+                        No hay productos registrados para esta venta.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
             <button

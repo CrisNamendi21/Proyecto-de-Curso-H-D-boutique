@@ -1,119 +1,157 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  crearClienteCompleto,
+  obtenerClientes,
+  obtenerClientesRecientes,
+  obtenerDepartamentos,
+  obtenerMunicipiosPorDepartamento,
+  obtenerResumenClientes,
+} from "../../../api/api";
 import "./Clientes.css";
 
-function Clientes() {
-  const obtenerFechaActual = () => {
-    const hoy = new Date();
-    const diferenciaZona = hoy.getTimezoneOffset() * 60000;
-    const fechaLocal = new Date(hoy.getTime() - diferenciaZona);
-    return fechaLocal.toISOString().split("T")[0];
-  };
+const resumenInicial = {
+  clientes_registrados: 0,
+  clientes_nuevos_mes: 0,
+  clientes_activos: 0,
+  clientes_con_direccion: 0,
+};
 
+const formularioInicial = {
+  nombres: "",
+  apellidos: "",
+  telefono: "",
+  idDepartamento: "",
+  idMunicipio: "",
+  direccion: "",
+};
+
+function Clientes() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [busqueda, setBusqueda] = useState("");
-
-  const [filtroTipo, setFiltroTipo] = useState("Todos");
   const [filtroDepartamento, setFiltroDepartamento] = useState("Todos");
+  const [clientes, setClientes] = useState([]);
+  const [clientesRecientes, setClientesRecientes] = useState([]);
+  const [departamentos, setDepartamentos] = useState([]);
+  const [municipios, setMunicipios] = useState([]);
+  const [resumen, setResumen] = useState(resumenInicial);
+  const [nuevoCliente, setNuevoCliente] = useState(formularioInicial);
+  const [cargando, setCargando] = useState(true);
+  const [cargandoMunicipios, setCargandoMunicipios] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
-  const [tipoAplicado, setTipoAplicado] = useState("Todos");
-  const [departamentoAplicado, setDepartamentoAplicado] = useState("Todos");
+  const cargarClientes = async (filtros = {}) => {
+    setCargando(true);
+    setError("");
 
-  const [clientes, setClientes] = useState([
-    {
-      id: 1,
-      codigo: "CLI-001",
-      nombre: "María José Martínez",
-      telefono: "88881234",
-      correo: "maria@email.com",
-      departamento: "Managua",
-      direccion: "Managua, Nicaragua",
-      tipo: "Frecuente",
-      fechaRegistro: "2026-05-21",
-    },
-    {
-      id: 2,
-      codigo: "CLI-002",
-      nombre: "Carla Sofía López",
-      telefono: "88115678",
-      correo: "carla@email.com",
-      departamento: "León",
-      direccion: "León, Nicaragua",
-      tipo: "Frecuente",
-      fechaRegistro: "2026-05-21",
-    },
-    {
-      id: 3,
-      codigo: "CLI-003",
-      nombre: "Andrea Valentina Ruiz",
-      telefono: "88552468",
-      correo: "andrea@email.com",
-      departamento: "Estelí",
-      direccion: "Estelí, Nicaragua",
-      tipo: "Nuevo",
-      fechaRegistro: "2026-05-21",
-    },
-    {
-      id: 4,
-      codigo: "CLI-004",
-      nombre: "Gabriela Hernández",
-      telefono: "87993344",
-      correo: "gabriela@email.com",
-      departamento: "Masaya",
-      direccion: "Masaya, Nicaragua",
-      tipo: "Ocasional",
-      fechaRegistro: "2026-05-20",
-    },
-    {
-      id: 5,
-      codigo: "CLI-005",
-      nombre: "Natalia Isabel Castro",
-      telefono: "88779988",
-      correo: "natalia@email.com",
-      departamento: "Granada",
-      direccion: "Granada, Nicaragua",
-      tipo: "Inactivo",
-      fechaRegistro: "2026-05-19",
-    },
-  ]);
+    try {
+      const [resumenRespuesta, clientesRespuesta, recientesRespuesta] =
+        await Promise.all([
+          obtenerResumenClientes(),
+          obtenerClientes(filtros),
+          obtenerClientesRecientes(),
+        ]);
 
-  const [nuevoCliente, setNuevoCliente] = useState({
-    nombre: "",
-    telefono: "",
-    correo: "",
-    departamento: "",
-    direccion: "",
-    tipo: "",
-    fechaRegistro: obtenerFechaActual(),
-    notas: "",
-  });
+      setResumen(resumenRespuesta || resumenInicial);
+      setClientes(clientesRespuesta || []);
+      setClientesRecientes(recientesRespuesta || []);
+    } catch (errorClientes) {
+      console.error("Error al cargar clientes:", errorClientes);
+      setClientes([]);
+      setClientesRecientes([]);
+      setResumen(resumenInicial);
+      setError(
+        errorClientes.message || "No se pudieron cargar los clientes."
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const cargarDepartamentos = async () => {
+    try {
+      const departamentosRespuesta = await obtenerDepartamentos();
+      setDepartamentos(departamentosRespuesta || []);
+    } catch (errorDepartamentos) {
+      console.error("Error al cargar departamentos:", errorDepartamentos);
+      setDepartamentos([]);
+      setError(
+        errorDepartamentos.message || "No se pudieron cargar departamentos."
+      );
+    }
+  };
+
+  const cargarMunicipios = async (idDepartamento) => {
+    if (!idDepartamento) {
+      setMunicipios([]);
+      return;
+    }
+
+    setCargandoMunicipios(true);
+    setError("");
+
+    try {
+      const municipiosRespuesta = await obtenerMunicipiosPorDepartamento(
+        idDepartamento
+      );
+      setMunicipios(municipiosRespuesta || []);
+    } catch (errorMunicipios) {
+      console.error("Error al cargar municipios:", errorMunicipios);
+      setMunicipios([]);
+      setError(errorMunicipios.message || "No se pudieron cargar municipios.");
+    } finally {
+      setCargandoMunicipios(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarClientes();
+    cargarDepartamentos();
+  }, []);
 
   const abrirModal = () => {
-    setNuevoCliente({
-      nombre: "",
-      telefono: "",
-      correo: "",
-      departamento: "",
-      direccion: "",
-      tipo: "",
-      fechaRegistro: obtenerFechaActual(),
-      notas: "",
-    });
-
+    setNuevoCliente(formularioInicial);
+    setMunicipios([]);
+    setError("");
+    setMensaje("");
     setMostrarModal(true);
   };
 
   const cerrarModal = () => {
     setMostrarModal(false);
+    setNuevoCliente(formularioInicial);
+    setMunicipios([]);
+    setGuardando(false);
   };
 
-  const manejarNombre = (e) => {
-    const valor = e.target.value;
+  const manejarCambio = (e) => {
+    const { name, value } = e.target;
 
-    if (/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]*$/.test(valor)) {
-      setNuevoCliente({
-        ...nuevoCliente,
-        nombre: valor,
-      });
+    if (name === "idDepartamento") {
+      setNuevoCliente((clienteActual) => ({
+        ...clienteActual,
+        idDepartamento: value,
+        idMunicipio: "",
+      }));
+      cargarMunicipios(value);
+      return;
+    }
+
+    setNuevoCliente((clienteActual) => ({
+      ...clienteActual,
+      [name]: value,
+    }));
+  };
+
+  const manejarTexto = (e) => {
+    const { name, value } = e.target;
+
+    if (/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]*$/.test(value)) {
+      setNuevoCliente((clienteActual) => ({
+        ...clienteActual,
+        [name]: value,
+      }));
     }
   };
 
@@ -121,105 +159,107 @@ function Clientes() {
     const valor = e.target.value;
 
     if (/^[0-9]*$/.test(valor)) {
-      setNuevoCliente({
-        ...nuevoCliente,
+      setNuevoCliente((clienteActual) => ({
+        ...clienteActual,
         telefono: valor,
-      });
+      }));
     }
   };
 
-  const manejarCambio = (e) => {
-    const { name, value } = e.target;
-
-    setNuevoCliente({
-      ...nuevoCliente,
-      [name]: value,
-    });
-  };
-
   const aplicarFiltros = () => {
-    setTipoAplicado(filtroTipo);
-    setDepartamentoAplicado(filtroDepartamento);
+    setMensaje("");
+    cargarClientes({
+      busqueda: busqueda.trim(),
+      departamento: filtroDepartamento,
+    });
   };
 
   const limpiarFiltros = () => {
     setBusqueda("");
-    setFiltroTipo("Todos");
     setFiltroDepartamento("Todos");
-    setTipoAplicado("Todos");
-    setDepartamentoAplicado("Todos");
+    setMensaje("");
+    cargarClientes();
   };
 
-  const guardarCliente = (e) => {
-    e.preventDefault();
+  const validarCliente = () => {
+    if (!nuevoCliente.nombres.trim()) {
+      return "El nombre del cliente es obligatorio.";
+    }
+
+    if (!nuevoCliente.apellidos.trim()) {
+      return "El apellido del cliente es obligatorio.";
+    }
+
+    if (nuevoCliente.telefono && nuevoCliente.telefono.length !== 8) {
+      return "El teléfono debe tener 8 números.";
+    }
+
+    if (!nuevoCliente.idDepartamento) {
+      return "Debes seleccionar un departamento.";
+    }
+
+    if (!nuevoCliente.idMunicipio) {
+      return "Debes seleccionar un municipio.";
+    }
+
+    const municipioSeleccionado = municipios.find(
+      (municipio) =>
+        String(municipio.ID_Municipio) === String(nuevoCliente.idMunicipio)
+    );
 
     if (
-      nuevoCliente.nombre.trim() === "" ||
-      nuevoCliente.telefono.trim() === "" ||
-      nuevoCliente.correo.trim() === "" ||
-      nuevoCliente.departamento.trim() === "" ||
-      nuevoCliente.direccion.trim() === "" ||
-      nuevoCliente.tipo.trim() === "" ||
-      nuevoCliente.fechaRegistro.trim() === ""
+      !municipioSeleccionado ||
+      String(municipioSeleccionado.ID_Departamento) !==
+        String(nuevoCliente.idDepartamento)
     ) {
-      alert("Por favor, complete todos los campos obligatorios.");
-      return;
+      return "El municipio seleccionado no pertenece al departamento indicado.";
     }
 
-    if (nuevoCliente.telefono.length !== 8) {
-      alert("El teléfono debe tener 8 números.");
-      return;
+    if (!nuevoCliente.direccion.trim()) {
+      return "La dirección del cliente es obligatoria.";
     }
 
-    const clienteAgregado = {
-      id: clientes.length + 1,
-      codigo: `CLI-${String(clientes.length + 1).padStart(3, "0")}`,
-      nombre: nuevoCliente.nombre,
-      telefono: nuevoCliente.telefono,
-      correo: nuevoCliente.correo,
-      departamento: nuevoCliente.departamento,
-      direccion: nuevoCliente.direccion,
-      tipo: nuevoCliente.tipo,
-      fechaRegistro: nuevoCliente.fechaRegistro,
-    };
-
-    setClientes([...clientes, clienteAgregado]);
-    setMostrarModal(false);
+    return "";
   };
 
-  const clientesFiltrados = clientes.filter((cliente) => {
-    const coincideBusqueda =
-      cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      cliente.telefono.includes(busqueda) ||
-      cliente.codigo.toLowerCase().includes(busqueda.toLowerCase());
+  const guardarCliente = async (e) => {
+    e.preventDefault();
 
-    const coincideTipo =
-      tipoAplicado === "Todos" || cliente.tipo === tipoAplicado;
+    const errorValidacion = validarCliente();
 
-    const coincideDepartamento =
-      departamentoAplicado === "Todos" ||
-      cliente.departamento === departamentoAplicado;
+    if (errorValidacion) {
+      setError(errorValidacion);
+      return;
+    }
 
-    return coincideBusqueda && coincideTipo && coincideDepartamento;
-  });
+    const payload = {
+      Nombres: nuevoCliente.nombres.trim(),
+      Apellidos: nuevoCliente.apellidos.trim(),
+      NumeroTelefono: nuevoCliente.telefono.trim() || null,
+      Direccion: nuevoCliente.direccion.trim(),
+      ID_Departamento: Number(nuevoCliente.idDepartamento),
+      ID_Municipio: Number(nuevoCliente.idMunicipio),
+    };
 
-  const totalClientes = clientes.length;
+    setGuardando(true);
+    setError("");
+    setMensaje("");
 
-  const clientesNuevos = clientes.filter(
-    (cliente) => cliente.tipo === "Nuevo"
-  ).length;
-
-  const clientesFrecuentes = clientes.filter(
-    (cliente) => cliente.tipo === "Frecuente"
-  ).length;
-
-  const clientesInactivos = clientes.filter(
-    (cliente) => cliente.tipo === "Inactivo"
-  ).length;
-
-  const clientesActivos = totalClientes - clientesInactivos;
-
-  const clientesRecientes = [...clientes].slice(-5).reverse();
+    try {
+      await crearClienteCompleto(payload);
+      setMensaje("Cliente creado correctamente.");
+      cerrarModal();
+      await cargarClientes({
+        busqueda: busqueda.trim(),
+        departamento: filtroDepartamento,
+      });
+    } catch (errorGuardar) {
+      console.error("Error al guardar cliente:", errorGuardar);
+      setError(errorGuardar.message || "No se pudo guardar el cliente.");
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   return (
     <section className="clientes-page">
@@ -227,39 +267,36 @@ function Clientes() {
         <h2>Clientes</h2>
       </div>
 
+      {mensaje && <div className="clientes-mensaje">{mensaje}</div>}
+      {error && <div className="clientes-error">{error}</div>}
+
       <div className="clientes-estadisticas">
         <div className="cliente-stat-card">
-         
           <div>
             <span>Clientes registrados</span>
-            <strong>{totalClientes}</strong>
+            <strong>{resumen.clientes_registrados}</strong>
           </div>
         </div>
 
         <div className="cliente-stat-card">
-        
           <div>
             <span>Clientes nuevos</span>
-            <strong>{clientesNuevos}</strong>
+            <strong>{resumen.clientes_nuevos_mes}</strong>
             <small>Este mes</small>
           </div>
         </div>
 
         <div className="cliente-stat-card">
-          
           <div>
-            <span>Clientes frecuentes</span>
-            <strong>{clientesFrecuentes}</strong>
-            <small>Compras recurrentes</small>
+            <span>Clientes activos</span>
+            <strong>{resumen.clientes_activos}</strong>
           </div>
         </div>
 
         <div className="cliente-stat-card">
-          
           <div>
-            <span>Clientes activos</span>
-            <strong>{clientesActivos}</strong>
-            <small>Con actividad reciente</small>
+            <span>Clientes con dirección</span>
+            <strong>{resumen.clientes_con_direccion}</strong>
           </div>
         </div>
       </div>
@@ -268,25 +305,11 @@ function Clientes() {
         <div className="clientes-buscador">
           <input
             type="text"
-            placeholder="Buscar cliente..."
+            placeholder="Buscar por ID, nombre o teléfono..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
           <span></span>
-        </div>
-
-        <div className="campo-filtro">
-          <label>Tipo de cliente</label>
-          <select
-            value={filtroTipo}
-            onChange={(e) => setFiltroTipo(e.target.value)}
-          >
-            <option>Todos</option>
-            <option>Frecuente</option>
-            <option>Nuevo</option>
-            <option>Ocasional</option>
-            <option>Inactivo</option>
-          </select>
         </div>
 
         <div className="campo-filtro">
@@ -295,16 +318,15 @@ function Clientes() {
             value={filtroDepartamento}
             onChange={(e) => setFiltroDepartamento(e.target.value)}
           >
-            <option>Todos</option>
-            <option>Managua</option>
-            <option>León</option>
-            <option>Masaya</option>
-            <option>Granada</option>
-            <option>Estelí</option>
-            <option>Chinandega</option>
-            <option>Carazo</option>
-            <option>Rivas</option>
-            <option>Matagalpa</option>
+            <option value="Todos">Todos</option>
+            {departamentos.map((departamento) => (
+              <option
+                key={departamento.ID_Departamento}
+                value={departamento.ID_Departamento}
+              >
+                {departamento.Departamento}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -321,7 +343,7 @@ function Clientes() {
         </button>
       </div>
 
-      <div className="clientes-contenido">
+      <div className="clientes-contenido clientes-contenido-simple">
         <div className="clientes-tabla-card">
           <h3>Listado de clientes</h3>
 
@@ -329,36 +351,48 @@ function Clientes() {
             <table className="clientes-tabla">
               <thead>
                 <tr>
-                  <th>Código</th>
+                  <th>ID</th>
                   <th>Nombre</th>
                   <th>Teléfono</th>
                   <th>Departamento</th>
-                  <th>Tipo</th>
-                  <th>Fecha de registro</th>
+                  <th>Municipio</th>
+                  <th>Dirección</th>
+                  <th>Estado</th>
                 </tr>
               </thead>
 
               <tbody>
-                {clientesFiltrados.length > 0 ? (
-                  clientesFiltrados.map((cliente) => (
-                    <tr key={cliente.id}>
-                      <td>{cliente.codigo}</td>
-                      <td>{cliente.nombre}</td>
-                      <td>{cliente.telefono}</td>
-                      <td>{cliente.departamento}</td>
+                {cargando ? (
+                  <tr>
+                    <td colSpan="7" className="sin-clientes">
+                      Cargando clientes...
+                    </td>
+                  </tr>
+                ) : clientes.length > 0 ? (
+                  clientes.map((cliente) => (
+                    <tr key={cliente.ID_Cliente}>
+                      <td>{cliente.ID_Cliente}</td>
+                      <td>{cliente.NombreCompleto}</td>
+                      <td>{cliente.NumeroTelefono || "Sin teléfono"}</td>
+                      <td>{cliente.Departamento || "Sin departamento"}</td>
+                      <td>{cliente.Municipio || "No registrado"}</td>
+                      <td>{cliente.Direccion || "Sin dirección"}</td>
                       <td>
                         <span
-                          className={`cliente-tipo ${cliente.tipo.toLowerCase()}`}
+                          className={
+                            cliente.Estado === "ACTIVO"
+                              ? "cliente-estado activo"
+                              : "cliente-estado inactivo"
+                          }
                         >
-                          {cliente.tipo}
+                          {cliente.Estado}
                         </span>
                       </td>
-                      <td>{cliente.fechaRegistro}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="sin-clientes">
+                    <td colSpan="7" className="sin-clientes">
                       No se encontraron clientes.
                     </td>
                   </tr>
@@ -368,53 +402,23 @@ function Clientes() {
           </div>
         </div>
 
-        <div className="clientes-paneles">
+        <div className="clientes-paneles clientes-paneles-simple">
           <div className="clientes-recientes-card">
             <h3>Clientes recientes</h3>
 
-            {clientesRecientes.map((cliente) => (
-              <div className="cliente-reciente" key={cliente.id}>
-                <div className="cliente-reciente-icon"></div>
-                <div>
-                  <strong>{cliente.nombre}</strong>
-                  <span>{cliente.fechaRegistro}</span>
+            {clientesRecientes.length > 0 ? (
+              clientesRecientes.map((cliente) => (
+                <div className="cliente-reciente" key={cliente.ID_Cliente}>
+                  <div className="cliente-reciente-icon"></div>
+                  <div>
+                    <strong>{cliente.NombreCompleto}</strong>
+                    <span>ID {cliente.ID_Cliente}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="clientes-resumen-card">
-            <h3>Resumen de clientes</h3>
-
-            <div className="resumen-item">
-              <span>Frecuentes</span>
-              <strong>{clientesFrecuentes}</strong>
-            </div>
-
-            <div className="resumen-item">
-              <span>Nuevos</span>
-              <strong>{clientesNuevos}</strong>
-            </div>
-
-            <div className="resumen-item">
-              <span>Ocasionales</span>
-              <strong>
-                {
-                  clientes.filter((cliente) => cliente.tipo === "Ocasional")
-                    .length
-                }
-              </strong>
-            </div>
-
-            <div className="resumen-item">
-              <span>Inactivos</span>
-              <strong>{clientesInactivos}</strong>
-            </div>
-
-            <div className="resumen-total">
-              <span>Total</span>
-              <strong>{totalClientes}</strong>
-            </div>
+              ))
+            ) : (
+              <p className="clientes-vacio">No hay clientes registrados.</p>
+            )}
           </div>
         </div>
       </div>
@@ -433,17 +437,29 @@ function Clientes() {
             <form className="form-clientes" onSubmit={guardarCliente}>
               <div className="form-clientes-grid">
                 <div className="campo-cliente">
-                  <label>Nombre completo *</label>
+                  <label>Nombres *</label>
                   <input
                     type="text"
-                    placeholder="Ingrese el nombre completo"
-                    value={nuevoCliente.nombre}
-                    onChange={manejarNombre}
+                    placeholder="Ingrese los nombres"
+                    name="nombres"
+                    value={nuevoCliente.nombres}
+                    onChange={manejarTexto}
                   />
                 </div>
 
                 <div className="campo-cliente">
-                  <label>Teléfono *</label>
+                  <label>Apellidos *</label>
+                  <input
+                    type="text"
+                    placeholder="Ingrese los apellidos"
+                    name="apellidos"
+                    value={nuevoCliente.apellidos}
+                    onChange={manejarTexto}
+                  />
+                </div>
+
+                <div className="campo-cliente">
+                  <label>Teléfono</label>
                   <input
                     type="text"
                     placeholder="Ingrese el teléfono"
@@ -454,60 +470,51 @@ function Clientes() {
                 </div>
 
                 <div className="campo-cliente">
-                  <label>Correo electrónico *</label>
-                  <input
-                    type="email"
-                    placeholder="Ingrese el correo electrónico"
-                    name="correo"
-                    value={nuevoCliente.correo}
-                    onChange={manejarCambio}
-                  />
-                </div>
-
-                <div className="campo-cliente">
                   <label>Departamento *</label>
                   <select
-                    name="departamento"
-                    value={nuevoCliente.departamento}
+                    name="idDepartamento"
+                    value={nuevoCliente.idDepartamento}
                     onChange={manejarCambio}
                   >
                     <option value="">Seleccione el departamento</option>
-                    <option value="Managua">Managua</option>
-                    <option value="León">León</option>
-                    <option value="Masaya">Masaya</option>
-                    <option value="Granada">Granada</option>
-                    <option value="Estelí">Estelí</option>
-                    <option value="Chinandega">Chinandega</option>
-                    <option value="Carazo">Carazo</option>
-                    <option value="Rivas">Rivas</option>
-                    <option value="Matagalpa">Matagalpa</option>
+                    {departamentos.map((departamento) => (
+                      <option
+                        key={departamento.ID_Departamento}
+                        value={departamento.ID_Departamento}
+                      >
+                        {departamento.Departamento}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="campo-cliente">
-                  <label>Tipo de cliente *</label>
+                  <label>Municipio *</label>
                   <select
-                    name="tipo"
-                    value={nuevoCliente.tipo}
+                    name="idMunicipio"
+                    value={nuevoCliente.idMunicipio}
                     onChange={manejarCambio}
+                    disabled={!nuevoCliente.idDepartamento || cargandoMunicipios}
                   >
-                    <option value="">Seleccione el tipo</option>
-                    <option value="Frecuente">Frecuente</option>
-                    <option value="Nuevo">Nuevo</option>
-                    <option value="Ocasional">Ocasional</option>
-                    <option value="Inactivo">Inactivo</option>
+                    <option value="">
+                      {cargandoMunicipios
+                        ? "Cargando municipios..."
+                        : "Seleccione el municipio"}
+                    </option>
+                    {municipios.map((municipio) => (
+                      <option
+                        key={municipio.ID_Municipio}
+                        value={municipio.ID_Municipio}
+                      >
+                        {municipio.Municipio}
+                      </option>
+                    ))}
                   </select>
-                </div>
-
-                <div className="campo-cliente">
-                  <label>Fecha de registro *</label>
-                  <input
-                    type="date"
-                    name="fechaRegistro"
-                    value={nuevoCliente.fechaRegistro}
-                    min={obtenerFechaActual()}
-                    onChange={manejarCambio}
-                  />
+                  {nuevoCliente.idDepartamento &&
+                    !cargandoMunicipios &&
+                    municipios.length === 0 && (
+                      <small>No hay municipios disponibles para este departamento.</small>
+                    )}
                 </div>
 
                 <div className="campo-cliente campo-cliente-ancho">
@@ -520,16 +527,6 @@ function Clientes() {
                     onChange={manejarCambio}
                   />
                 </div>
-
-                <div className="campo-cliente campo-cliente-ancho">
-                  <label>Notas adicionales</label>
-                  <textarea
-                    placeholder="Notas adicionales opcional"
-                    name="notas"
-                    value={nuevoCliente.notas}
-                    onChange={manejarCambio}
-                  ></textarea>
-                </div>
               </div>
 
               <div className="modal-clientes-botones">
@@ -537,12 +534,17 @@ function Clientes() {
                   type="button"
                   className="btn-cancelar-cliente"
                   onClick={cerrarModal}
+                  disabled={guardando}
                 >
                   Cancelar
                 </button>
 
-                <button type="submit" className="btn-guardar-cliente">
-                  Guardar cliente
+                <button
+                  type="submit"
+                  className="btn-guardar-cliente"
+                  disabled={guardando}
+                >
+                  {guardando ? "Guardando..." : "Guardar cliente"}
                 </button>
               </div>
             </form>

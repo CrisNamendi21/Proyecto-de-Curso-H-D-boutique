@@ -23,6 +23,7 @@ from app.models.ventas.recibo_model import Recibo
 from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
 from app.models.clientes.direccion_cliente_model import DireccionCliente
 from app.models.productos.producto_model import Producto
+from app.models.catalogos.talla_model import Talla
 from app.models.catalogos.departamento_model import Departamento
 from app.models.catalogos.municipio_model import Municipio
 
@@ -65,6 +66,7 @@ def _crear_cliente_generico(db: Session):
 
     direccion_generica = DireccionCliente(
         ID_Departamento=_obtener_departamento_default(db),
+        ID_Municipio=None,
         Direccion=None
     )
     db.add(direccion_generica)
@@ -153,13 +155,16 @@ def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
             )
 
         id_departamento = datos_cliente.ID_Departamento
+        id_municipio = datos_cliente.ID_Municipio
         direccion = datos_cliente.Direccion.strip()
     else:
         id_departamento = datos_cliente.ID_Departamento or _obtener_departamento_default(db)
+        id_municipio = datos_cliente.ID_Municipio
         direccion = datos_cliente.Direccion.strip() if _texto_presente(datos_cliente.Direccion) else None
 
     nueva_direccion = DireccionCliente(
         ID_Departamento=id_departamento,
+        ID_Municipio=id_municipio,
         Direccion=direccion
     )
     db.add(nueva_direccion)
@@ -221,6 +226,31 @@ def _normalizar_metodo_pago(metodo_pago: Optional[str]):
         return None
 
     return metodo
+
+
+def _productos_detalle_venta(db: Session, id_venta: int):
+    detalles = db.query(DetalleVenta, Producto, Talla).join(
+        Producto,
+        DetalleVenta.ID_Producto == Producto.ID_Producto
+    ).outerjoin(
+        Talla,
+        Producto.ID_Talla == Talla.ID_Talla
+    ).filter(
+        DetalleVenta.ID_Venta == id_venta
+    ).order_by(
+        DetalleVenta.ID_DetalleVenta.asc()
+    ).all()
+
+    return [
+        {
+            "producto": producto.Nombre,
+            "talla": talla.Talla if talla else "Sin talla",
+            "cantidad": detalle.Cantidad,
+            "precio": _a_float(detalle.PrecioUnitario),
+            "subtotal": _a_float(detalle.subtotal)
+        }
+        for detalle, producto, talla in detalles
+    ]
 
 
 @router.get("/", response_model=list[VentaResponse])
@@ -286,11 +316,10 @@ def obtener_resumen_ventas_dia(
         if metodo_filtrado and metodo.lower() != metodo_filtrado:
             continue
 
-        total_productos = db.query(
-            func.coalesce(func.sum(DetalleVenta.Cantidad), 0)
-        ).filter(
-            DetalleVenta.ID_Venta == venta.ID_Venta
-        ).scalar() or 0
+        productos_detalle = _productos_detalle_venta(db, venta.ID_Venta)
+        total_productos = sum(
+            producto["cantidad"] for producto in productos_detalle
+        )
 
         venta_item = {
             "id_venta": venta.ID_Venta,
@@ -300,7 +329,8 @@ def obtener_resumen_ventas_dia(
             "cliente": _nombre_cliente(cliente_venta),
             "metodo_pago": metodo,
             "total": _a_float(venta.Total),
-            "productos": int(total_productos)
+            "productos": int(total_productos),
+            "productos_detalle": productos_detalle
         }
 
         ventas_filtradas.append(venta_item)
@@ -506,6 +536,12 @@ def registrar_venta_completa(
                 raise HTTPException(
                     status_code=400,
                     detail="Para ventas con delivery, el cliente debe tener un departamento registrado."
+                )
+
+            if not direccion_cliente.ID_Municipio:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Para ventas con delivery, el cliente debe tener un municipio registrado."
                 )
 
         productos_validados = []

@@ -385,9 +385,9 @@
 
 .metodo-item {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 9px;
-  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 9px;
+  align-items: start;
   border-bottom: 1px solid #f8e7ef;
   padding-bottom: 8px;
 }
@@ -397,12 +397,17 @@
   color: #4a3f47;
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .metodo-item strong {
+  grid-column: 2;
   color: #2f2933;
   font-size: 12.5px;
-  white-space: nowrap;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .circulo {
@@ -521,6 +526,39 @@
   color: #2f2933;
   font-size: 15px;
   word-break: break-word;
+}
+
+.detalle-productos-venta {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.detalle-productos-venta h3 {
+  margin: 0 0 10px;
+  color: #2f2933;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.detalle-productos-venta table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.detalle-productos-venta th {
+  text-align: left;
+  color: #8c6d7b;
+  font-size: 12px;
+  padding: 10px 8px;
+  border-bottom: 1px solid #f4d9e5;
+}
+
+.detalle-productos-venta td {
+  color: #372f36;
+  font-size: 13px;
+  padding: 10px 8px;
+  border-bottom: 1px solid #f8e7ef;
 }
 
 .btn-cerrar-modal {

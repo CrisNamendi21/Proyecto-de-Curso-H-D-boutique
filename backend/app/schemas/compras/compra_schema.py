@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CompraBase(BaseModel):
@@ -34,3 +34,59 @@ class CompraResponse(CompraBase):
     ID_Compra: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CompraResumenResponse(BaseModel):
+    compras_mes: Decimal
+    ordenes_registradas: int
+    monto_invertido: Decimal
+    proveedores_activos: int
+
+
+class CompraListadoResponse(BaseModel):
+    ID_Compra: int
+    fecha: str
+    proveedor: str
+    producto_principal: str
+    cantidad_total: int
+    monto: Decimal
+    estado: str
+    descripcion: Optional[str] = None
+    costo_envio: Decimal
+
+
+class ProductoProveedorCompraResponse(BaseModel):
+    ID_ProductoProveedor: int
+    ID_Producto: int
+    Nombre: str
+    ID_Talla: int
+    Talla: Optional[str] = None
+    PrecioDeCompra: Decimal
+    Stock: int
+
+
+class CompraCompletaProducto(BaseModel):
+    ID_ProductoProveedor: int
+    Cantidad: int = Field(gt=0)
+
+
+class CompraCompletaCreate(BaseModel):
+    ID_Proveedor: int
+    ID_Empleado: int = 1
+    FechaCompra: date
+    Estado: str
+    Descripcion: Optional[str] = None
+    CostoDeEnvio: Optional[Decimal] = Field(default=None, ge=0)
+    productos: list[CompraCompletaProducto]
+
+
+class CompraCompletaResponse(BaseModel):
+    mensaje: str
+    ID_Compra: int
+    ID_Proveedor: int
+    ID_Empleado: int
+    TotalProductos: Decimal
+    CostoDeEnvio: Decimal
+    TotalCompra: Decimal
+    Estado: str
+    DetallesRegistrados: int

@@ -21,6 +21,7 @@ Se conecto la pantalla Ventas con datos reales del backend, se quitaron datos qu
   - Se agregaron filtros por fecha, cliente y metodo de pago.
   - Se quito Ventas por hora.
   - Se quitaron descuentos e impuestos del resumen del dia.
+  - La columna `No. venta` muestra el ID real de la tabla Ventas sin formato ficticio.
   - Se mantiene un modal simple para el boton Ver usando datos reales del listado.
 
 - `frontend/src/pages/duena/Ventas/Ventas.css`
@@ -88,6 +89,8 @@ Ejemplo real de respuesta:
 }
 ```
 
+Nota: `numero_venta` puede venir en la respuesta por compatibilidad, pero la columna `No. venta` del frontend usa `id_venta` y muestra el valor real como `25`.
+
 ## 4. Datos reales mostrados
 
 La pantalla Ventas ahora muestra datos reales para:
@@ -117,6 +120,7 @@ Si no hay datos para una fecha, se muestran ceros y mensajes vacios claros.
 - Total neto es igual al total de ventas porque no existen descuentos ni impuestos locales.
 - Backend calcula.
 - Frontend muestra.
+- `No. venta` se muestra desde `id_venta`, que corresponde al `ID_Venta` real de SQL Server. No se usa indice, contador local ni formato `V-00000`.
 - Metodo Mixto se detecta cuando una venta tiene mas de un tipo de pago en `PagosVenta`.
 - Efectivo y Transferencia se detectan cuando la venta tiene un solo tipo de pago.
 

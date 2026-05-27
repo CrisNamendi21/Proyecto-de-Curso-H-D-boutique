@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 class DireccionClienteBase(BaseModel):
     ID_Departamento: int
+    ID_Municipio: Optional[int] = None
     Direccion: Optional[str] = None
 
 
@@ -13,6 +14,7 @@ class DireccionClienteCreate(DireccionClienteBase):
 
 class DireccionClienteUpdate(BaseModel):
     ID_Departamento: Optional[int] = None
+    ID_Municipio: Optional[int] = None
     Direccion: Optional[str] = None
 
 

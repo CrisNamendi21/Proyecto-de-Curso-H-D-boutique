@@ -16,6 +16,11 @@ class ProductoCreate(ProductoBase):
     pass
 
 
+class ProductoCompletoCreate(ProductoBase):
+    ID_Proveedor: int
+    PrecioDeCompra: Decimal
+
+
 class ProductoUpdate(BaseModel):
     ID_Categoria: Optional[int] = None
     ID_Talla: Optional[int] = None
@@ -28,5 +33,17 @@ class ProductoUpdate(BaseModel):
 class ProductoResponse(ProductoBase):
     ID_Producto: int
     PrecioUnitario: Optional[Decimal] = None
+    PrecioDeCompra: Optional[Decimal] = None
+    Talla: Optional[str] = None
+    Categoria: Optional[str] = None
+    ID_Proveedor: Optional[int] = None
+    Proveedor: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductoInventarioResumen(BaseModel):
+    total_productos: int
+    valor_inventario: Decimal
+    productos_bajos_stock: int
+    productos_sin_stock: int

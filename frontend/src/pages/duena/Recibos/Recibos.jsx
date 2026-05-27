@@ -1,5 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  descargarPdfRecibo,
+  obtenerDetalleRecibo,
+  obtenerRecibos,
+  obtenerResumenRecibos,
+  obtenerUltimoRecibo,
+} from "../../../api/api";
 import "./Recibos.css";
+
+const resumenInicial = {
+  recibos_hoy: 0,
+  recibos_mes: 0,
+  monto_facturado: 0,
+};
 
 function Recibos() {
   const obtenerFechaActual = () => {
@@ -9,167 +22,89 @@ function Recibos() {
     return fechaLocal.toISOString().split("T")[0];
   };
 
-  const recibosIniciales = [
-    {
-      id: 1,
-      numero: "R-00125",
-      fecha: "2026-05-22",
-      hora: "10:45 AM",
-      cliente: "Andrea Castillo",
-      vendedor: "Dueña",
-      metodoPago: "Efectivo",
-      subtotal: 1086.96,
-      impuesto: 163.04,
-      total: 1250,
-      estado: "Emitido",
-      productos: [
-        { nombre: "Blusa Manga Larga", cantidad: 1, precio: 950 },
-        { nombre: "Top Básico", cantidad: 1, precio: 300 },
-      ],
-    },
-    {
-      id: 2,
-      numero: "R-00124",
-      fecha: "2026-05-22",
-      hora: "10:15 AM",
-      cliente: "Valeria Soto",
-      vendedor: "Dueña",
-      metodoPago: "Transferencia",
-      subtotal: 826.09,
-      impuesto: 123.91,
-      total: 950,
-      estado: "Emitido",
-      productos: [
-        { nombre: "Camisa Oversize", cantidad: 1, precio: 850 },
-        { nombre: "Accesorio", cantidad: 1, precio: 100 },
-      ],
-    },
-    {
-      id: 3,
-      numero: "R-00123",
-      fecha: "2026-05-22",
-      hora: "09:50 AM",
-      cliente: "Gabriela Ruiz",
-      vendedor: "Dueña",
-      metodoPago: "Efectivo + Transferencia",
-      subtotal: 1260.87,
-      impuesto: 189.13,
-      total: 1450,
-      estado: "Emitido",
-      productos: [
-        { nombre: "Vestido Floral", cantidad: 1, precio: 1250 },
-        { nombre: "Falda Plisada", cantidad: 1, precio: 200 },
-      ],
-    },
-    {
-      id: 4,
-      numero: "R-00122",
-      fecha: "2026-05-21",
-      hora: "04:30 PM",
-      cliente: "Alejandra Díaz",
-      vendedor: "Dueña",
-      metodoPago: "Efectivo",
-      subtotal: 634.78,
-      impuesto: 95.22,
-      total: 730,
-      estado: "Emitido",
-      productos: [
-        { nombre: "Short Denim", cantidad: 1, precio: 650 },
-        { nombre: "Accesorio", cantidad: 1, precio: 80 },
-      ],
-    },
-    {
-      id: 5,
-      numero: "R-00121",
-      fecha: "2026-05-21",
-      hora: "03:10 PM",
-      cliente: "Paola Rojas",
-      vendedor: "Dueña",
-      metodoPago: "Efectivo",
-      subtotal: 478.26,
-      impuesto: 71.74,
-      total: 550,
-      estado: "Anulado",
-      productos: [
-        { nombre: "Top Básico", cantidad: 1, precio: 450 },
-        { nombre: "Accesorio", cantidad: 1, precio: 100 },
-      ],
-    },
-    {
-      id: 6,
-      numero: "R-00120",
-      fecha: "2026-05-20",
-      hora: "01:20 PM",
-      cliente: "Cliente general",
-      vendedor: "Dueña",
-      metodoPago: "Transferencia",
-      subtotal: 2869.57,
-      impuesto: 430.43,
-      total: 3300,
-      estado: "Emitido",
-      productos: [
-        { nombre: "Pantalón Palazzo", cantidad: 2, precio: 1100 },
-        { nombre: "Bolso Beige", cantidad: 1, precio: 1100 },
-      ],
-    },
-  ];
-
-  const [busqueda, setBusqueda] = useState("");
-  const [fecha, setFecha] = useState(obtenerFechaActual());
-  const [metodoPago, setMetodoPago] = useState("");
-  const [reciboSeleccionado, setReciboSeleccionado] = useState(
-    recibosIniciales[0]
-  );
+  const [resumenRecibos, setResumenRecibos] = useState(resumenInicial);
+  const [recibos, setRecibos] = useState([]);
+  const [ultimoRecibo, setUltimoRecibo] = useState(null);
+  const [reciboSeleccionado, setReciboSeleccionado] = useState(null);
   const [mostrarModalRecibo, setMostrarModalRecibo] = useState(false);
+  const [cargandoRecibos, setCargandoRecibos] = useState(true);
+  const [errorRecibos, setErrorRecibos] = useState("");
+  const [filtros, setFiltros] = useState({
+    busqueda: "",
+    fecha: obtenerFechaActual(),
+    medioPago: "Todos",
+  });
 
   const formatearDinero = (valor) => {
-    return `C$ ${Number(valor).toLocaleString("es-NI", {
+    return `C$ ${Number(valor || 0).toLocaleString("es-NI", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
   };
 
-  const calcularSubtotalProducto = (producto) => {
-    return producto.precio * producto.cantidad;
+  const cargarResumenYUltimo = async () => {
+    const [resumenRespuesta, ultimoRespuesta] = await Promise.allSettled([
+      obtenerResumenRecibos(),
+      obtenerUltimoRecibo(),
+    ]);
+
+    if (resumenRespuesta.status === "fulfilled") {
+      setResumenRecibos(resumenRespuesta.value);
+    } else {
+      setResumenRecibos(resumenInicial);
+    }
+
+    if (ultimoRespuesta.status === "fulfilled") {
+      setUltimoRecibo(ultimoRespuesta.value);
+    } else {
+      setUltimoRecibo(null);
+    }
   };
 
-  const recibosFiltrados = recibosIniciales.filter((recibo) => {
-    const coincideBusqueda =
-      recibo.cliente.toLowerCase().includes(busqueda.toLowerCase()) ||
-      recibo.numero.toLowerCase().includes(busqueda.toLowerCase());
+  const cargarRecibos = async (filtrosConsulta = filtros) => {
+    setCargandoRecibos(true);
+    setErrorRecibos("");
 
-    const coincideFecha = fecha === "" || recibo.fecha === fecha;
-    const coincideMetodo =
-      metodoPago === "" || recibo.metodoPago === metodoPago;
+    try {
+      const recibosRespuesta = await obtenerRecibos({
+        fecha: filtrosConsulta.fecha,
+        busqueda: filtrosConsulta.busqueda.trim(),
+        medioPago: filtrosConsulta.medioPago,
+      });
 
-    return coincideBusqueda && coincideFecha && coincideMetodo;
-  });
+      setRecibos(recibosRespuesta || []);
+      await cargarResumenYUltimo();
+    } catch (error) {
+      console.error("Error al cargar recibos:", error);
+      setRecibos([]);
+      setErrorRecibos(
+        error.message || "No se pudieron cargar los recibos."
+      );
+    } finally {
+      setCargandoRecibos(false);
+    }
+  };
 
-  const resumen = useMemo(() => {
-    const recibosEmitidos = recibosIniciales.filter(
-      (recibo) => recibo.estado === "Emitido"
-    );
-
-    const recibosHoy = recibosEmitidos.filter(
-      (recibo) => recibo.fecha === obtenerFechaActual()
-    );
-
-    const totalFacturado = recibosEmitidos.reduce(
-      (total, recibo) => total + recibo.total,
-      0
-    );
-
-    return {
-      recibosHoy: recibosHoy.length,
-      recibosMes: recibosEmitidos.length,
-      totalFacturado,
-    };
+  useEffect(() => {
+    cargarRecibos();
   }, []);
 
+  const manejarFiltro = (campo) => (e) => {
+    setFiltros((filtrosActuales) => ({
+      ...filtrosActuales,
+      [campo]: e.target.value,
+    }));
+  };
+
   const limpiarFiltros = () => {
-    setBusqueda("");
-    setFecha("");
-    setMetodoPago("");
+    const filtrosLimpios = {
+      busqueda: "",
+      fecha: obtenerFechaActual(),
+      medioPago: "Todos",
+    };
+
+    setFiltros(filtrosLimpios);
+    cargarRecibos(filtrosLimpios);
   };
 
   const obtenerClaseEstado = (estado) => {
@@ -177,17 +112,34 @@ function Recibos() {
     return "estado anulado";
   };
 
-  const abrirReciboCompleto = (recibo) => {
-    setReciboSeleccionado(recibo);
-    setMostrarModalRecibo(true);
+  const abrirReciboCompleto = async (idRecibo) => {
+    setErrorRecibos("");
+
+    try {
+      const detalle = await obtenerDetalleRecibo(idRecibo);
+      setReciboSeleccionado(detalle);
+      setMostrarModalRecibo(true);
+    } catch (error) {
+      setErrorRecibos(
+        error.message || "No se pudo cargar el detalle del recibo."
+      );
+    }
   };
 
-  const imprimirRecibo = () => {
-    setMostrarModalRecibo(true);
+  const exportarPdf = async (idRecibo) => {
+    if (!idRecibo) {
+      setErrorRecibos("No hay un recibo seleccionado para exportar.");
+      return;
+    }
 
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    try {
+      setErrorRecibos("");
+      await descargarPdfRecibo(idRecibo);
+    } catch (error) {
+      setErrorRecibos(
+        error.message || "No se pudo descargar el PDF del recibo."
+      );
+    }
   };
 
   return (
@@ -196,11 +148,17 @@ function Recibos() {
         <h1>Recibos</h1>
       </div>
 
+      {cargandoRecibos && (
+        <p className="estado-recibos">Cargando recibos...</p>
+      )}
+
+      {errorRecibos && <p className="error-recibos">{errorRecibos}</p>}
+
       <div className="recibos-cards">
         <article className="recibo-card">
           <div>
             <span>Recibos de hoy</span>
-            <strong>{resumen.recibosHoy}</strong>
+            <strong>{resumenRecibos.recibos_hoy}</strong>
           </div>
           <div className="card-icono">▤</div>
         </article>
@@ -208,7 +166,7 @@ function Recibos() {
         <article className="recibo-card">
           <div>
             <span>Recibos del mes</span>
-            <strong>{resumen.recibosMes}</strong>
+            <strong>{resumenRecibos.recibos_mes}</strong>
           </div>
           <div className="card-icono">▥</div>
         </article>
@@ -216,7 +174,7 @@ function Recibos() {
         <article className="recibo-card">
           <div>
             <span>Monto facturado</span>
-            <strong>{formatearDinero(resumen.totalFacturado)}</strong>
+            <strong>{formatearDinero(resumenRecibos.monto_facturado)}</strong>
           </div>
           <div className="card-icono">C$</div>
         </article>
@@ -228,8 +186,8 @@ function Recibos() {
           <input
             type="text"
             placeholder="Buscar por cliente o número"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            value={filtros.busqueda}
+            onChange={manejarFiltro("busqueda")}
           />
         </div>
 
@@ -237,29 +195,29 @@ function Recibos() {
           <label>Fecha</label>
           <input
             type="date"
-            value={fecha}
+            value={filtros.fecha}
             max={obtenerFechaActual()}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={manejarFiltro("fecha")}
           />
         </div>
 
         <div className="filtro-grupo">
           <label>Medio de pago</label>
           <select
-            value={metodoPago}
-            onChange={(e) => setMetodoPago(e.target.value)}
+            value={filtros.medioPago}
+            onChange={manejarFiltro("medioPago")}
           >
-            <option value="">Todos los medios</option>
+            <option value="Todos">Todos los medios</option>
             <option value="Efectivo">Efectivo</option>
             <option value="Transferencia">Transferencia</option>
-            <option value="Efectivo + Transferencia">
-              Efectivo + Transferencia
-            </option>
+            <option value="Mixto">Mixto</option>
           </select>
         </div>
 
         <div className="acciones-filtros">
-          <button type="button">Filtrar</button>
+          <button type="button" onClick={() => cargarRecibos(filtros)}>
+            Filtrar
+          </button>
           <button type="button" onClick={limpiarFiltros}>
             Limpiar
           </button>
@@ -288,15 +246,13 @@ function Recibos() {
               </thead>
 
               <tbody>
-                {recibosFiltrados.map((recibo) => (
-                  <tr key={recibo.id}>
-                    <td>{recibo.numero}</td>
-                    <td>
-                      {recibo.fecha} {recibo.hora}
-                    </td>
+                {recibos.map((recibo) => (
+                  <tr key={recibo.ID_Recibo}>
+                    <td>{recibo.numero_recibo}</td>
+                    <td>{recibo.fecha}</td>
                     <td>{recibo.cliente}</td>
                     <td>{recibo.vendedor}</td>
-                    <td>{recibo.metodoPago}</td>
+                    <td>{recibo.medio_pago}</td>
                     <td>{formatearDinero(recibo.total)}</td>
                     <td>
                       <span className={obtenerClaseEstado(recibo.estado)}>
@@ -307,7 +263,7 @@ function Recibos() {
                       <button
                         type="button"
                         className="btn-ver"
-                        onClick={() => abrirReciboCompleto(recibo)}
+                        onClick={() => abrirReciboCompleto(recibo.ID_Recibo)}
                       >
                         Ver
                       </button>
@@ -315,7 +271,7 @@ function Recibos() {
                   </tr>
                 ))}
 
-                {recibosFiltrados.length === 0 && (
+                {!cargandoRecibos && recibos.length === 0 && (
                   <tr>
                     <td colSpan="8" className="sin-datos">
                       No se encontraron recibos.
@@ -328,8 +284,7 @@ function Recibos() {
 
           <div className="tabla-footer">
             <span>
-              Mostrando {recibosFiltrados.length} de {recibosIniciales.length}{" "}
-              recibos
+              Mostrando {recibos.length} de {recibos.length} recibos
             </span>
           </div>
         </article>
@@ -339,11 +294,11 @@ function Recibos() {
             <h2>Vista previa del recibo</h2>
           </div>
 
-          {reciboSeleccionado ? (
+          {ultimoRecibo ? (
             <div className="vista-previa-contenido">
               <div className="recibo-miniatura">
                 <h3>H&D Boutique</h3>
-                <p>Recibo de venta</p>
+                <p>{ultimoRecibo.numero_recibo}</p>
 
                 <div className="lineas-miniatura">
                   <span></span>
@@ -353,66 +308,66 @@ function Recibos() {
 
                 <div className="mini-total">
                   <span>Total</span>
-                  <strong>{formatearDinero(reciboSeleccionado.total)}</strong>
+                  <strong>{formatearDinero(ultimoRecibo.total)}</strong>
                 </div>
               </div>
 
               <div className="datos-recibo">
                 <div>
                   <span>Cliente:</span>
-                  <strong>{reciboSeleccionado.cliente}</strong>
+                  <strong>{ultimoRecibo.cliente}</strong>
                 </div>
 
                 <div>
                   <span>Fecha:</span>
-                  <strong>
-                    {reciboSeleccionado.fecha} {reciboSeleccionado.hora}
-                  </strong>
+                  <strong>{ultimoRecibo.fecha}</strong>
                 </div>
 
                 <div>
                   <span>Vendedor:</span>
-                  <strong>{reciboSeleccionado.vendedor}</strong>
+                  <strong>{ultimoRecibo.vendedor}</strong>
                 </div>
               </div>
 
               <div className="totales-recibo">
                 <div>
                   <span>Medio de pago:</span>
-                  <strong>{reciboSeleccionado.metodoPago}</strong>
+                  <strong>{ultimoRecibo.medio_pago}</strong>
                 </div>
 
                 <div>
-                  <span>Subtotal:</span>
-                  <strong>{formatearDinero(reciboSeleccionado.subtotal)}</strong>
+                  <span>Estado:</span>
+                  <strong>{ultimoRecibo.estado}</strong>
                 </div>
 
                 <div>
-                  <span>Impuesto (15%):</span>
-                  <strong>{formatearDinero(reciboSeleccionado.impuesto)}</strong>
+                  <span>Delivery:</span>
+                  <strong>{formatearDinero(ultimoRecibo.delivery || 0)}</strong>
                 </div>
 
                 <div className="total-final">
                   <span>Total:</span>
-                  <strong>{formatearDinero(reciboSeleccionado.total)}</strong>
+                  <strong>{formatearDinero(ultimoRecibo.total)}</strong>
                 </div>
               </div>
 
               <div className="acciones-recibo">
                 <button
                   type="button"
-                  onClick={() => abrirReciboCompleto(reciboSeleccionado)}
+                  onClick={() => abrirReciboCompleto(ultimoRecibo.ID_Recibo)}
                 >
                   Ver
                 </button>
-                <button type="button" onClick={imprimirRecibo}>
-                  Imprimir
+                <button
+                  type="button"
+                  onClick={() => exportarPdf(ultimoRecibo.ID_Recibo)}
+                >
+                  Exportar PDF
                 </button>
-                <button type="button">Exportar PDF</button>
               </div>
             </div>
           ) : (
-            <p className="sin-datos">Selecciona un recibo para ver el detalle.</p>
+            <p className="sin-datos">No hay recibos emitidos todavía.</p>
           )}
         </article>
       </div>
@@ -420,7 +375,7 @@ function Recibos() {
       {mostrarModalRecibo && reciboSeleccionado && (
         <div className="modal-recibo-fondo">
           <div className="modal-recibo">
-            <div className="modal-recibo-header no-imprimir">
+            <div className="modal-recibo-header">
               <h2>Detalle completo del recibo</h2>
               <button
                 type="button"
@@ -430,7 +385,7 @@ function Recibos() {
               </button>
             </div>
 
-            <div className="recibo-completo" id="recibo-imprimible">
+            <div className="recibo-completo">
               <div className="recibo-completo-encabezado">
                 <div>
                   <h2>H&D Boutique</h2>
@@ -439,7 +394,7 @@ function Recibos() {
 
                 <div className="recibo-numero">
                   <span>No. recibo</span>
-                  <strong>{reciboSeleccionado.numero}</strong>
+                  <strong>{reciboSeleccionado.numero_recibo}</strong>
                 </div>
               </div>
 
@@ -451,9 +406,7 @@ function Recibos() {
 
                 <div>
                   <span>Fecha</span>
-                  <strong>
-                    {reciboSeleccionado.fecha} {reciboSeleccionado.hora}
-                  </strong>
+                  <strong>{reciboSeleccionado.fecha}</strong>
                 </div>
 
                 <div>
@@ -463,7 +416,7 @@ function Recibos() {
 
                 <div>
                   <span>Medio de pago</span>
-                  <strong>{reciboSeleccionado.metodoPago}</strong>
+                  <strong>{reciboSeleccionado.medio_pago}</strong>
                 </div>
 
                 <div>
@@ -479,6 +432,7 @@ function Recibos() {
                   <thead>
                     <tr>
                       <th>Producto</th>
+                      <th>Talla</th>
                       <th>Cantidad</th>
                       <th>Precio</th>
                       <th>Subtotal</th>
@@ -486,14 +440,13 @@ function Recibos() {
                   </thead>
 
                   <tbody>
-                    {reciboSeleccionado.productos.map((producto, index) => (
-                      <tr key={`${producto.nombre}-${index}`}>
-                        <td>{producto.nombre}</td>
+                    {reciboSeleccionado.productos.map((producto) => (
+                      <tr key={`${producto.producto}-${producto.subtotal}`}>
+                        <td>{producto.producto}</td>
+                        <td>{producto.talla || "Sin talla"}</td>
                         <td>{producto.cantidad}</td>
                         <td>{formatearDinero(producto.precio)}</td>
-                        <td>
-                          {formatearDinero(calcularSubtotalProducto(producto))}
-                        </td>
+                        <td>{formatearDinero(producto.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -502,13 +455,17 @@ function Recibos() {
 
               <div className="recibo-completo-totales">
                 <div>
-                  <span>Subtotal</span>
-                  <strong>{formatearDinero(reciboSeleccionado.subtotal)}</strong>
+                  <span>Total productos</span>
+                  <strong>
+                    {formatearDinero(reciboSeleccionado.total_productos)}
+                  </strong>
                 </div>
 
                 <div>
-                  <span>Impuesto (15%)</span>
-                  <strong>{formatearDinero(reciboSeleccionado.impuesto)}</strong>
+                  <span>Delivery</span>
+                  <strong>
+                    {formatearDinero(reciboSeleccionado.delivery || 0)}
+                  </strong>
                 </div>
 
                 <div className="recibo-total-final">
@@ -523,7 +480,7 @@ function Recibos() {
               </div>
             </div>
 
-            <div className="modal-recibo-acciones no-imprimir">
+            <div className="modal-recibo-acciones">
               <button
                 type="button"
                 className="btn-modal-secundario"
@@ -535,9 +492,9 @@ function Recibos() {
               <button
                 type="button"
                 className="btn-modal-principal"
-                onClick={imprimirRecibo}
+                onClick={() => exportarPdf(reciboSeleccionado.ID_Recibo)}
               >
-                Imprimir recibo
+                Exportar PDF
               </button>
             </div>
           </div>
