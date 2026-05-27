@@ -1,7 +1,7 @@
 const API_URL = "http://127.0.0.1:8000";
 
 async function procesarRespuesta(respuesta, mensajeError) {
-  let datos = null;
+  let datos;
 
   try {
     datos = await respuesta.json();
