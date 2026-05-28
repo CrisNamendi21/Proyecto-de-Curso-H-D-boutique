@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import String, cast, func, or_
 from sqlalchemy.orm import Session
 
+from app.auth.security import generar_hash_password
 from app.database import get_db
 from app.models.catalogos.departamento_model import Departamento
 from app.models.catalogos.municipio_model import Municipio
@@ -44,6 +45,31 @@ def _normalizar_estado(estado: str):
     return estado_normalizado
 
 
+def _usuario_normalizado(usuario: Optional[str]):
+    if not usuario:
+        return None
+
+    usuario_limpio = usuario.strip()
+    return usuario_limpio or None
+
+
+def _validar_usuario_disponible(db: Session, usuario: Optional[str], id_empleado: Optional[int] = None):
+    usuario_limpio = _usuario_normalizado(usuario)
+
+    if not usuario_limpio:
+        return None
+
+    consulta = db.query(Empleado).filter(func.lower(Empleado.Usuario) == usuario_limpio.lower())
+
+    if id_empleado is not None:
+        consulta = consulta.filter(Empleado.ID_Empleado != id_empleado)
+
+    if consulta.first():
+        raise HTTPException(status_code=400, detail="El usuario del empleado ya existe.")
+
+    return usuario_limpio
+
+
 def _empleado_a_listado(empleado, direccion, departamento, municipio=None):
     return {
         "ID_Empleado": empleado.ID_Empleado,
@@ -62,6 +88,7 @@ def _empleado_a_listado(empleado, direccion, departamento, municipio=None):
         "Departamento": departamento.Departamento if departamento else None,
         "ID_Municipio": direccion.ID_Municipio if direccion else None,
         "Municipio": municipio.Municipio if municipio else None,
+        "Usuario": empleado.Usuario,
     }
 
 
@@ -148,7 +175,13 @@ def crear_empleado(empleado: EmpleadoCreate, db: Session = Depends(get_db)):
     if not direccion:
         raise HTTPException(status_code=404, detail="Dirección de empleado no encontrada")
 
-    nuevo_empleado = Empleado(**empleado.model_dump())
+    datos_empleado = empleado.model_dump(exclude={"Password"})
+    datos_empleado["Usuario"] = _validar_usuario_disponible(db, empleado.Usuario)
+
+    if empleado.Password:
+        datos_empleado["PasswordHash"] = generar_hash_password(empleado.Password)
+
+    nuevo_empleado = Empleado(**datos_empleado)
 
     db.add(nuevo_empleado)
     db.commit()
@@ -173,6 +206,14 @@ def crear_empleado_completo(
 
     if not empleado.Direccion.strip():
         raise HTTPException(status_code=400, detail="La dirección del empleado es obligatoria.")
+
+    usuario = _validar_usuario_disponible(db, empleado.Usuario)
+
+    if usuario and not empleado.Password:
+        raise HTTPException(
+            status_code=400,
+            detail="La contrasena es obligatoria cuando se asigna usuario."
+        )
 
     departamento = db.query(Departamento).filter(
         Departamento.ID_Departamento == empleado.ID_Departamento
@@ -215,6 +256,8 @@ def crear_empleado_completo(
             else None,
             Cargo=empleado.Cargo.strip() if empleado.Cargo else "Empleado",
             FechaFin=None,
+            Usuario=usuario,
+            PasswordHash=generar_hash_password(empleado.Password) if empleado.Password else None,
         )
 
         db.add(nuevo_empleado)
@@ -280,6 +323,13 @@ def actualizar_empleado(
         raise HTTPException(status_code=404, detail="Empleado no encontrado")
 
     datos_actualizados = empleado_actualizado.model_dump(exclude_unset=True)
+
+    if "Usuario" in datos_actualizados:
+        datos_actualizados["Usuario"] = _validar_usuario_disponible(
+            db,
+            datos_actualizados["Usuario"],
+            id_empleado=id_empleado
+        )
 
     if "ID_Direccion_empleado" in datos_actualizados:
         direccion = db.query(DireccionEmpleado).filter(

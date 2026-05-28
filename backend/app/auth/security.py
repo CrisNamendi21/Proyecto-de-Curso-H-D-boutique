@@ -33,14 +33,24 @@ def _firmar_jwt(header: str, payload: str) -> str:
     return _base64url_encode(firma)
 
 
-def verificar_password_duena(password: str) -> bool:
+def generar_hash_password(password: str) -> str:
     hash_generado = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
         settings.DUENA_PASSWORD_SALT.encode("utf-8"),
         120000
     ).hex()
-    return hmac.compare_digest(hash_generado, settings.DUENA_PASSWORD_HASH)
+
+    return hash_generado
+
+
+def verificar_password_hash(password: str, password_hash: str) -> bool:
+    hash_generado = generar_hash_password(password)
+    return hmac.compare_digest(hash_generado, password_hash)
+
+
+def verificar_password_duena(password: str) -> bool:
+    return verificar_password_hash(password, settings.DUENA_PASSWORD_HASH)
 
 
 def crear_token_acceso(datos: dict) -> str:
@@ -128,7 +138,7 @@ def obtener_usuario_actual(
     nombre = payload.get("nombre")
     rol = payload.get("rol")
 
-    if not usuario or rol != "duena":
+    if not usuario or rol not in ("duena", "colaborador"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de autenticación inválido."
@@ -137,5 +147,6 @@ def obtener_usuario_actual(
     return UsuarioAutenticado(
         usuario=usuario,
         nombre=nombre or settings.DUENA_LOGIN_NOMBRE,
-        rol=rol
+        rol=rol,
+        id_empleado=payload.get("id_empleado")
     )

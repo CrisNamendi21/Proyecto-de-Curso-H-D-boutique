@@ -18,3 +18,5 @@ class Empleado(Base):
     CorreoProfesional = Column(Unicode(150), nullable=True)
     Cargo = Column(Unicode(100), nullable=True)
     FechaFin = Column(Date, nullable=True)
+    Usuario = Column(Unicode(80), unique=True, nullable=True)
+    PasswordHash = Column(Unicode(255), nullable=True)

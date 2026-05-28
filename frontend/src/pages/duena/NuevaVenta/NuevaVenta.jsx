@@ -11,7 +11,7 @@ import "./NuevaVenta.css";
 
 const ID_EMPLEADO_TEMPORAL = 1;
 
-function NuevaVenta() {
+function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
   const obtenerFechaActual = () => {
     const hoy = new Date();
     const diferenciaZona = hoy.getTimezoneOffset() * 60000;
@@ -563,7 +563,7 @@ function NuevaVenta() {
 
   const construirPayload = () => {
     const payload = {
-      ID_Empleado: ID_EMPLEADO_TEMPORAL,
+      ID_Empleado: idEmpleado,
       CostoDelivery:
         tipoCliente === "delivery" ? costoDeliveryNumerico : null,
       ObservacionRecibo:

@@ -7,6 +7,7 @@ import {
   obtenerUsuarioActual,
 } from "./api/api";
 import InicioSesion from "./pages/InicioSesion/InicioSesion";
+import DashboardColaborador from "./pages/colaborador/Dashboard/DashboardColaborador";
 import DashboardDuena from "./pages/duena/Dashboard/DashboardDuena";
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
       rol: datosSesion.rol,
       nombre: datosSesion.nombre,
       usuario: datosSesion.usuario,
+      id_empleado: datosSesion.id_empleado,
     });
   };
 
@@ -63,7 +65,11 @@ function App() {
     return <InicioSesion onLoginCorrecto={manejarLoginCorrecto} />;
   }
 
-  return <DashboardDuena setRol={cerrarSesion} />;
+  if (sesion.rol === "duena") {
+    return <DashboardDuena setRol={cerrarSesion} />;
+  }
+
+  return <DashboardColaborador sesion={sesion} cerrarSesion={cerrarSesion} />;
 }
 
 export default App;

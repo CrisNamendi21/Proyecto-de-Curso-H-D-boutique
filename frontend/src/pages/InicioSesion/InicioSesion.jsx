@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { iniciarSesionDuena } from "../../api/api";
+import { iniciarSesion } from "../../api/api";
 import "./InicioSesion.css";
 
 function InicioSesion({ onLoginCorrecto }) {
@@ -14,7 +14,7 @@ function InicioSesion({ onLoginCorrecto }) {
     setCargando(true);
 
     try {
-      const sesion = await iniciarSesionDuena({
+      const sesion = await iniciarSesion({
         Usuario: usuario,
         Password: password,
       });
@@ -63,7 +63,7 @@ function InicioSesion({ onLoginCorrecto }) {
           {mensaje && <p className="login-error">{mensaje}</p>}
 
           <button className="login-btn duena" type="submit" disabled={cargando}>
-            {cargando ? "Validando..." : "Ingresar como dueña"}
+            {cargando ? "Validando..." : "Ingresar"}
           </button>
         </form>
       </section>

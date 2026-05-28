@@ -26,6 +26,8 @@ const formularioInicial = {
   direccion: "",
   idDepartamento: "",
   idMunicipio: "",
+  usuario: "",
+  password: "",
 };
 
 function Empleados() {
@@ -221,6 +223,10 @@ function Empleados() {
       return "Debes seleccionar un municipio.";
     }
 
+    if (nuevoEmpleado.usuario.trim() && !nuevoEmpleado.password.trim()) {
+      return "La contrasena es obligatoria cuando asignas usuario.";
+    }
+
     const municipioSeleccionado = municipios.find(
       (municipio) =>
         String(municipio.ID_Municipio) === String(nuevoEmpleado.idMunicipio)
@@ -257,6 +263,8 @@ function Empleados() {
       Direccion: nuevoEmpleado.direccion.trim(),
       ID_Departamento: Number(nuevoEmpleado.idDepartamento),
       ID_Municipio: Number(nuevoEmpleado.idMunicipio),
+      Usuario: nuevoEmpleado.usuario.trim() || null,
+      Password: nuevoEmpleado.password.trim() || null,
     };
 
     setGuardando(true);
@@ -383,6 +391,7 @@ function Empleados() {
                 <th>Nombre</th>
                 <th>Teléfono</th>
                 <th>Correo</th>
+                <th>Usuario</th>
                 <th>Cargo</th>
                 <th>Estado</th>
                 <th>Fecha de ingreso</th>
@@ -396,7 +405,7 @@ function Empleados() {
             <tbody>
               {cargando ? (
                 <tr>
-                  <td colSpan="11" className="sin-resultados">
+                  <td colSpan="12" className="sin-resultados">
                     Cargando empleados...
                   </td>
                 </tr>
@@ -407,6 +416,7 @@ function Empleados() {
                     <td>{empleado.NombreCompleto}</td>
                     <td>{empleado.NumeroTelefono}</td>
                     <td>{empleado.CorreoProfesional || "No registrado"}</td>
+                    <td>{empleado.Usuario || "Sin acceso"}</td>
                     <td>{empleado.Cargo || "No registrado"}</td>
                     <td>
                       <span className={`estado ${empleado.Estado.toLowerCase()}`}>
@@ -435,7 +445,7 @@ function Empleados() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="11" className="sin-resultados">
+                  <td colSpan="12" className="sin-resultados">
                     No se encontraron empleados.
                   </td>
                 </tr>
@@ -510,6 +520,30 @@ function Empleados() {
                   value={nuevoEmpleado.cargo}
                   onChange={manejarCambio}
                   placeholder="Empleado"
+                />
+              </div>
+
+              <div className="grupo-form">
+                <label>Usuario de acceso</label>
+                <input
+                  type="text"
+                  name="usuario"
+                  value={nuevoEmpleado.usuario}
+                  onChange={manejarCambio}
+                  placeholder="Usuario para iniciar sesion"
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="grupo-form">
+                <label>Contrasena de acceso</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={nuevoEmpleado.password}
+                  onChange={manejarCambio}
+                  placeholder="Contrasena temporal"
+                  autoComplete="new-password"
                 />
               </div>
 

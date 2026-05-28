@@ -99,12 +99,14 @@ export async function actualizarDatos(ruta, datos) {
   }
 }
 
-export async function iniciarSesionDuena(credenciales) {
+export async function iniciarSesion(credenciales) {
   const respuesta = await enviarDatos("/auth/login", credenciales);
   guardarToken(respuesta.access_token);
 
   return respuesta;
 }
+
+export const iniciarSesionDuena = iniciarSesion;
 
 export function obtenerUsuarioActual() {
   return obtenerDatos("/auth/me");

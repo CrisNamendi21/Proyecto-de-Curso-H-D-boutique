@@ -12,10 +12,11 @@ class EmpleadoBase(BaseModel):
     CorreoProfesional: Optional[str] = None
     Cargo: Optional[str] = None
     FechaFin: Optional[date] = None
+    Usuario: Optional[str] = None
 
 
 class EmpleadoCreate(EmpleadoBase):
-    pass
+    Password: Optional[str] = None
 
 
 class EmpleadoUpdate(BaseModel):
@@ -27,6 +28,7 @@ class EmpleadoUpdate(BaseModel):
     CorreoProfesional: Optional[str] = None
     Cargo: Optional[str] = None
     FechaFin: Optional[date] = None
+    Usuario: Optional[str] = None
 
 
 class EmpleadoResponse(EmpleadoBase):
@@ -59,6 +61,7 @@ class EmpleadoListadoResponse(BaseModel):
     Departamento: Optional[str] = None
     ID_Municipio: Optional[int] = None
     Municipio: Optional[str] = None
+    Usuario: Optional[str] = None
 
 
 class EmpleadoCompletoCreate(BaseModel):
@@ -71,6 +74,8 @@ class EmpleadoCompletoCreate(BaseModel):
     Direccion: str
     ID_Departamento: int
     ID_Municipio: int
+    Usuario: Optional[str] = None
+    Password: Optional[str] = None
 
 
 class EmpleadoEstadoUpdate(BaseModel):
