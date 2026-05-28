@@ -1,0 +1,138 @@
+/* =========================
+   LOGIN H&D BOUTIQUE
+========================= */
+
+.inicio-sesion-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffe4ef, #f8bbd7, #fff7fb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.inicio-sesion-card {
+  width: 420px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 28px;
+  padding: 42px 44px;
+  box-shadow: 0 22px 50px rgba(184, 84, 132, 0.22);
+  text-align: center;
+}
+
+.inicio-sesion-card h1 {
+  margin: 0 0 12px;
+  font-size: 34px;
+  color: #b84f8a;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.inicio-sesion-card p {
+  margin: 0 0 30px;
+  color: #7b5268;
+  font-size: 15px;
+}
+
+/* =========================
+   FORMULARIO
+========================= */
+
+.inicio-sesion-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.campo-login {
+  text-align: left;
+}
+
+.campo-login label {
+  display: block;
+  margin-bottom: 7px;
+  color: #5a2d45;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.campo-login input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 15px;
+  border: 1.5px solid #f3b6d2;
+  border-radius: 14px;
+  outline: none;
+  font-size: 15px;
+  color: #3b2633;
+  background: #fffafd;
+  transition: 0.2s ease;
+}
+
+.campo-login input::placeholder {
+  color: #b88aa2;
+}
+
+.campo-login input:focus {
+  border-color: #eb5b93;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(235, 91, 147, 0.14);
+}
+
+/* =========================
+   MENSAJE DE ERROR
+========================= */
+
+.mensaje-error-login {
+  margin: -4px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #ffe8ee;
+  color: #b8305b !important;
+  font-size: 14px !important;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* =========================
+   BOTÓN
+========================= */
+
+.btn-ingresar {
+  margin-top: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #eb5b93, #c95ca6);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(235, 91, 147, 0.28);
+  transition: 0.2s ease;
+}
+
+.btn-ingresar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(235, 91, 147, 0.36);
+}
+
+.btn-ingresar:active {
+  transform: translateY(0);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 520px) {
+  .inicio-sesion-card {
+    width: 86%;
+    padding: 34px 24px;
+  }
+
+  .inicio-sesion-card h1 {
+    font-size: 28px;
+  }
+}
