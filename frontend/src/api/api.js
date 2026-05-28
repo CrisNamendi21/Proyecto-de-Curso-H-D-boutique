@@ -1,5 +1,26 @@
 const API_URL = "http://127.0.0.1:8000";
 
+export function obtenerToken() {
+  return localStorage.getItem("hdb_token");
+}
+
+export function guardarToken(token) {
+  localStorage.setItem("hdb_token", token);
+}
+
+export function eliminarToken() {
+  localStorage.removeItem("hdb_token");
+}
+
+function construirHeaders(headers = {}) {
+  const token = obtenerToken();
+
+  return {
+    ...headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 async function procesarRespuesta(respuesta, mensajeError) {
   let datos;
 
@@ -24,7 +45,9 @@ async function procesarRespuesta(respuesta, mensajeError) {
 
 export async function obtenerDatos(ruta) {
   try {
-    const respuesta = await fetch(`${API_URL}${ruta}`);
+    const respuesta = await fetch(`${API_URL}${ruta}`, {
+      headers: construirHeaders(),
+    });
 
     return await procesarRespuesta(
       respuesta,
@@ -40,9 +63,9 @@ export async function enviarDatos(ruta, datos) {
   try {
     const respuesta = await fetch(`${API_URL}${ruta}`, {
       method: "POST",
-      headers: {
+      headers: construirHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify(datos),
     });
 
@@ -60,9 +83,9 @@ export async function actualizarDatos(ruta, datos) {
   try {
     const respuesta = await fetch(`${API_URL}${ruta}`, {
       method: "PUT",
-      headers: {
+      headers: construirHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify(datos),
     });
 
@@ -74,6 +97,17 @@ export async function actualizarDatos(ruta, datos) {
     console.error("Error en actualizarDatos:", error);
     throw error;
   }
+}
+
+export async function iniciarSesionDuena(credenciales) {
+  const respuesta = await enviarDatos("/auth/login", credenciales);
+  guardarToken(respuesta.access_token);
+
+  return respuesta;
+}
+
+export function obtenerUsuarioActual() {
+  return obtenerDatos("/auth/me");
 }
 
 export function obtenerProductos() {
@@ -116,9 +150,9 @@ export async function cambiarEstadoProveedor(idProveedor, estado) {
   try {
     const respuesta = await fetch(`${API_URL}/proveedores/${idProveedor}/estado`, {
       method: "PATCH",
-      headers: {
+      headers: construirHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify({ Estado: estado }),
     });
 
@@ -195,9 +229,9 @@ export async function cambiarEstadoEmpleado(idEmpleado, estado) {
   try {
     const respuesta = await fetch(`${API_URL}/empleados/${idEmpleado}/estado`, {
       method: "PATCH",
-      headers: {
+      headers: construirHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify({ Estado: estado }),
     });
 
@@ -329,7 +363,9 @@ export function obtenerDetalleRecibo(idRecibo) {
 
 export async function descargarPdfRecibo(idRecibo) {
   try {
-    const respuesta = await fetch(`${API_URL}/recibos/${idRecibo}/pdf`);
+    const respuesta = await fetch(`${API_URL}/recibos/${idRecibo}/pdf`, {
+      headers: construirHeaders(),
+    });
 
     if (!respuesta.ok) {
       await procesarRespuesta(respuesta, "Error al descargar el PDF del recibo");

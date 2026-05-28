@@ -8,6 +8,7 @@ from app.config import settings
 from app.database import get_db
 
 #importacion de routers
+from app.routers.auth.auth_router import router as auth_router
 from app.routers.catalogos.categoria_router import router as categoria_router
 from app.routers.catalogos.departamento_router import router as departamento_router
 from app.routers.catalogos.talla_router import router as talla_router
@@ -51,6 +52,7 @@ app.add_middleware(
 )
 
 ##llamada a routers
+app.include_router(auth_router)
 app.include_router(categoria_router)
 app.include_router(departamento_router)
 app.include_router(talla_router)
