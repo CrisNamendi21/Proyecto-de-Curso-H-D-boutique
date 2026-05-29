@@ -12,10 +12,10 @@ class EmpleadoBase(BaseModel):
     CorreoProfesional: Optional[str] = None
     Cargo: Optional[str] = None
     FechaFin: Optional[date] = None
-    Usuario: Optional[str] = None
 
 
 class EmpleadoCreate(EmpleadoBase):
+    Usuario: Optional[str] = None
     Password: Optional[str] = None
 
 

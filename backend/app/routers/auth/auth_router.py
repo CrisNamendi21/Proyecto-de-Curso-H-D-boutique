@@ -11,6 +11,7 @@ from app.auth.security import (
 from app.config import settings
 from app.database import get_db
 from app.models.empleados.empleado_model import Empleado
+from app.models.usuarios.usuario_model import UsuarioSistema
 from app.schemas.auth.auth_schema import (
     LoginRequest,
     TokenResponse,
@@ -43,23 +44,28 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
             rol="duena"
         )
 
-    empleado = db.query(Empleado).filter(
-        func.lower(Empleado.Usuario) == usuario.lower()
+    data = db.query(UsuarioSistema, Empleado).join(
+        Empleado,
+        UsuarioSistema.ID_Empleado == Empleado.ID_Empleado
+    ).filter(
+        func.lower(UsuarioSistema.Usuario) == usuario.lower()
     ).first()
 
-    if not empleado or not empleado.PasswordHash:
+    if not data:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario o contrasena incorrectos."
         )
 
-    if empleado.FechaFin:
+    usuario_sistema, empleado = data
+
+    if usuario_sistema.Estado != "ACTIVO" or empleado.FechaFin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="El empleado se encuentra inactivo."
+            detail="El usuario se encuentra inactivo."
         )
 
-    if not verificar_password_hash(password, empleado.PasswordHash):
+    if not verificar_password_hash(password, usuario_sistema.ContrasenaHash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario o contrasena incorrectos."
@@ -67,17 +73,17 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
 
     nombre_empleado = f"{empleado.Nombres} {empleado.Apellidos}".strip()
     token = crear_token_acceso({
-        "sub": empleado.Usuario,
+        "sub": usuario_sistema.Usuario,
         "nombre": nombre_empleado,
-        "rol": "colaborador",
+        "rol": usuario_sistema.Rol.lower(),
         "id_empleado": empleado.ID_Empleado,
     })
 
     return TokenResponse(
         access_token=token,
-        usuario=empleado.Usuario,
+        usuario=usuario_sistema.Usuario,
         nombre=nombre_empleado,
-        rol="colaborador",
+        rol=usuario_sistema.Rol.lower(),
         id_empleado=empleado.ID_Empleado
     )
 

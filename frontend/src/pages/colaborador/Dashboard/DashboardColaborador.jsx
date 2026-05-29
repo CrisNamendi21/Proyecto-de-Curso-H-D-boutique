@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "../../duena/Dashboard/DashboardDuena.css";
+import "./DashboardColaborador.css";
 
 import Clientes from "../../duena/Clientes/Clientes";
 import NuevaVenta from "../../duena/NuevaVenta/NuevaVenta";
@@ -9,7 +10,7 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
   const [vistaActual, setVistaActual] = useState("dashboard");
 
   return (
-    <div className="app">
+    <div className="app colaborador-theme">
       <aside className="sidebar">
         <div className="brand">
           <h1>H&amp;D Boutique</h1>
@@ -65,6 +66,21 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
             <>
               <div className="dashboard-header">
                 <h2 className="page-title">Inicio</h2>
+              </div>
+
+              <div className="colaborador-welcome">
+                <div className="colaborador-panel">
+                  <h3>Bienvenido, {sesion?.nombre || "Colaborador"}</h3>
+                  <p>
+                    Desde este panel puedes registrar ventas, consultar productos
+                    y gestionar clientes.
+                  </p>
+                </div>
+
+                <div className="colaborador-panel">
+                  <h3>Acceso activo</h3>
+                  <span className="colaborador-badge">Colaborador</span>
+                </div>
               </div>
 
               <div className="cards-grid">

@@ -11,6 +11,7 @@ from app.models.catalogos.departamento_model import Departamento
 from app.models.catalogos.municipio_model import Municipio
 from app.models.empleados.empleado_model import Empleado
 from app.models.empleados.direccion_empleado_model import DireccionEmpleado
+from app.models.usuarios.usuario_model import UsuarioSistema
 from app.schemas.empleados.empleado_schema import (
     EmpleadoCompletoCreate,
     EmpleadoCreate,
@@ -59,10 +60,12 @@ def _validar_usuario_disponible(db: Session, usuario: Optional[str], id_empleado
     if not usuario_limpio:
         return None
 
-    consulta = db.query(Empleado).filter(func.lower(Empleado.Usuario) == usuario_limpio.lower())
+    consulta = db.query(UsuarioSistema).filter(
+        func.lower(UsuarioSistema.Usuario) == usuario_limpio.lower()
+    )
 
     if id_empleado is not None:
-        consulta = consulta.filter(Empleado.ID_Empleado != id_empleado)
+        consulta = consulta.filter(UsuarioSistema.ID_Empleado != id_empleado)
 
     if consulta.first():
         raise HTTPException(status_code=400, detail="El usuario del empleado ya existe.")
@@ -70,7 +73,54 @@ def _validar_usuario_disponible(db: Session, usuario: Optional[str], id_empleado
     return usuario_limpio
 
 
-def _empleado_a_listado(empleado, direccion, departamento, municipio=None):
+def _crear_o_actualizar_usuario_empleado(
+    db: Session,
+    empleado: Empleado,
+    usuario: Optional[str],
+    password: Optional[str] = None
+):
+    usuario_limpio = _validar_usuario_disponible(
+        db,
+        usuario,
+        id_empleado=empleado.ID_Empleado
+    )
+
+    usuario_existente = db.query(UsuarioSistema).filter(
+        UsuarioSistema.ID_Empleado == empleado.ID_Empleado
+    ).first()
+
+    if not usuario_limpio:
+        return usuario_existente
+
+    if not usuario_existente and not password:
+        raise HTTPException(
+            status_code=400,
+            detail="La contrasena es obligatoria cuando se asigna usuario."
+        )
+
+    if usuario_existente:
+        usuario_existente.Usuario = usuario_limpio
+        usuario_existente.Rol = "COLABORADOR"
+        usuario_existente.Estado = "ACTIVO" if empleado.FechaFin is None else "INACTIVO"
+
+        if password:
+            usuario_existente.ContrasenaHash = generar_hash_password(password)
+
+        return usuario_existente
+
+    nuevo_usuario = UsuarioSistema(
+        ID_Empleado=empleado.ID_Empleado,
+        Usuario=usuario_limpio,
+        ContrasenaHash=generar_hash_password(password),
+        Rol="COLABORADOR",
+        Estado="ACTIVO" if empleado.FechaFin is None else "INACTIVO",
+    )
+
+    db.add(nuevo_usuario)
+    return nuevo_usuario
+
+
+def _empleado_a_listado(empleado, direccion, departamento, municipio=None, usuario_sistema=None):
     return {
         "ID_Empleado": empleado.ID_Empleado,
         "ID_Direccion_empleado": empleado.ID_Direccion_empleado,
@@ -88,7 +138,7 @@ def _empleado_a_listado(empleado, direccion, departamento, municipio=None):
         "Departamento": departamento.Departamento if departamento else None,
         "ID_Municipio": direccion.ID_Municipio if direccion else None,
         "Municipio": municipio.Municipio if municipio else None,
-        "Usuario": empleado.Usuario,
+        "Usuario": usuario_sistema.Usuario if usuario_sistema else None,
     }
 
 
@@ -115,7 +165,7 @@ def listar_empleados(
     estado: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    consulta = db.query(Empleado, DireccionEmpleado, Departamento, Municipio).join(
+    consulta = db.query(Empleado, DireccionEmpleado, Departamento, Municipio, UsuarioSistema).join(
         DireccionEmpleado,
         Empleado.ID_Direccion_empleado == DireccionEmpleado.ID_Direccion_empleado
     ).outerjoin(
@@ -124,6 +174,9 @@ def listar_empleados(
     ).outerjoin(
         Municipio,
         DireccionEmpleado.ID_Municipio == Municipio.ID_Municipio
+    ).outerjoin(
+        UsuarioSistema,
+        UsuarioSistema.ID_Empleado == Empleado.ID_Empleado
     )
 
     if busqueda:
@@ -149,8 +202,8 @@ def listar_empleados(
     empleados = consulta.order_by(Empleado.ID_Empleado.desc()).all()
 
     return [
-        _empleado_a_listado(empleado, direccion, departamento, municipio)
-        for empleado, direccion, departamento, municipio in empleados
+        _empleado_a_listado(empleado, direccion, departamento, municipio, usuario_sistema)
+        for empleado, direccion, departamento, municipio, usuario_sistema in empleados
     ]
 
 
@@ -175,15 +228,18 @@ def crear_empleado(empleado: EmpleadoCreate, db: Session = Depends(get_db)):
     if not direccion:
         raise HTTPException(status_code=404, detail="Dirección de empleado no encontrada")
 
-    datos_empleado = empleado.model_dump(exclude={"Password"})
-    datos_empleado["Usuario"] = _validar_usuario_disponible(db, empleado.Usuario)
-
-    if empleado.Password:
-        datos_empleado["PasswordHash"] = generar_hash_password(empleado.Password)
+    datos_empleado = empleado.model_dump(exclude={"Usuario", "Password"})
 
     nuevo_empleado = Empleado(**datos_empleado)
 
     db.add(nuevo_empleado)
+    db.flush()
+    _crear_o_actualizar_usuario_empleado(
+        db,
+        nuevo_empleado,
+        empleado.Usuario,
+        empleado.Password
+    )
     db.commit()
     db.refresh(nuevo_empleado)
 
@@ -207,13 +263,7 @@ def crear_empleado_completo(
     if not empleado.Direccion.strip():
         raise HTTPException(status_code=400, detail="La dirección del empleado es obligatoria.")
 
-    usuario = _validar_usuario_disponible(db, empleado.Usuario)
-
-    if usuario and not empleado.Password:
-        raise HTTPException(
-            status_code=400,
-            detail="La contrasena es obligatoria cuando se asigna usuario."
-        )
+    usuario = _usuario_normalizado(empleado.Usuario)
 
     departamento = db.query(Departamento).filter(
         Departamento.ID_Departamento == empleado.ID_Departamento
@@ -256,11 +306,16 @@ def crear_empleado_completo(
             else None,
             Cargo=empleado.Cargo.strip() if empleado.Cargo else "Empleado",
             FechaFin=None,
-            Usuario=usuario,
-            PasswordHash=generar_hash_password(empleado.Password) if empleado.Password else None,
         )
 
         db.add(nuevo_empleado)
+        db.flush()
+        _crear_o_actualizar_usuario_empleado(
+            db,
+            nuevo_empleado,
+            usuario,
+            empleado.Password
+        )
         db.commit()
         db.refresh(nuevo_empleado)
         db.refresh(nueva_direccion)
@@ -286,6 +341,12 @@ def cambiar_estado_empleado(
 
     estado = _normalizar_estado(datos.Estado)
     empleado.FechaFin = None if estado == "ACTIVO" else date.today()
+    usuario_sistema = db.query(UsuarioSistema).filter(
+        UsuarioSistema.ID_Empleado == empleado.ID_Empleado
+    ).first()
+
+    if usuario_sistema:
+        usuario_sistema.Estado = estado
 
     db.commit()
     db.refresh(empleado)
@@ -306,7 +367,7 @@ def cambiar_estado_empleado(
                 Municipio.ID_Municipio == direccion.ID_Municipio
             ).first()
 
-    return _empleado_a_listado(empleado, direccion, departamento, municipio)
+    return _empleado_a_listado(empleado, direccion, departamento, municipio, usuario_sistema)
 
 
 @router.put("/{id_empleado}", response_model=EmpleadoResponse)
@@ -324,12 +385,7 @@ def actualizar_empleado(
 
     datos_actualizados = empleado_actualizado.model_dump(exclude_unset=True)
 
-    if "Usuario" in datos_actualizados:
-        datos_actualizados["Usuario"] = _validar_usuario_disponible(
-            db,
-            datos_actualizados["Usuario"],
-            id_empleado=id_empleado
-        )
+    usuario_actualizado = datos_actualizados.pop("Usuario", None)
 
     if "ID_Direccion_empleado" in datos_actualizados:
         direccion = db.query(DireccionEmpleado).filter(
@@ -341,6 +397,9 @@ def actualizar_empleado(
 
     for campo, valor in datos_actualizados.items():
         setattr(empleado, campo, valor)
+
+    if usuario_actualizado is not None:
+        _crear_o_actualizar_usuario_empleado(db, empleado, usuario_actualizado)
 
     db.commit()
     db.refresh(empleado)

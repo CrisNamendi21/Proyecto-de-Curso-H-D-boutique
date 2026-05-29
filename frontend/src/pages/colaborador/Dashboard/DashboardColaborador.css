@@ -1,0 +1,170 @@
+.colaborador-theme {
+  --colab-hueso: #f8f6f0;
+  --colab-lila: #e6d6fa;
+  --colab-morado: #cdb4f6;
+  --colab-texto: #3b235f;
+  --colab-suave: #6f5a8d;
+  --colab-borde: #cdb4f6;
+  --colab-panel: #ffffff;
+}
+
+.colaborador-theme.app,
+.colaborador-theme .main-content,
+.colaborador-theme .topbar,
+.colaborador-theme .dashboard-content {
+  background: var(--colab-hueso);
+}
+
+.colaborador-theme .sidebar {
+  background: #ffffff;
+  border-right-color: var(--colab-borde);
+}
+
+.colaborador-theme .brand {
+  border-bottom-color: var(--colab-borde);
+}
+
+.colaborador-theme .brand h1 {
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .brand p,
+.colaborador-theme .dashboard-card p {
+  color: var(--colab-suave);
+}
+
+.colaborador-theme .menu-item {
+  border-bottom-color: #eadffc;
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .menu-item:hover,
+.colaborador-theme .menu-item.active {
+  background: var(--colab-lila);
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .logout-btn,
+.colaborador-theme .user-label {
+  background: #ffffff;
+  border-color: var(--colab-borde);
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .topbar {
+  border-bottom-color: var(--colab-borde);
+}
+
+.colaborador-theme .page-title,
+.colaborador-theme .dashboard-card h3,
+.colaborador-theme .card-main-value {
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .dashboard-card,
+.colaborador-theme .panel,
+.colaborador-theme .productos-page,
+.colaborador-theme .clientes-page,
+.colaborador-theme .nueva-venta-page {
+  background: var(--colab-hueso);
+}
+
+.colaborador-theme .dashboard-card {
+  border-color: var(--colab-borde);
+  background:
+    linear-gradient(135deg, rgba(230, 214, 250, 0.55), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 14px 30px rgba(76, 48, 115, 0.09);
+}
+
+.colaborador-theme .card-line {
+  background: var(--colab-morado);
+}
+
+.colaborador-theme .colaborador-welcome {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.colaborador-theme .colaborador-panel {
+  background: #ffffff;
+  border: 1px solid var(--colab-borde);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 14px 28px rgba(76, 48, 115, 0.08);
+}
+
+.colaborador-theme .colaborador-panel h3 {
+  color: var(--colab-texto);
+  margin: 0 0 10px;
+}
+
+.colaborador-theme .colaborador-panel p {
+  color: var(--colab-suave);
+  margin: 0;
+}
+
+.colaborador-theme .colaborador-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 0 16px;
+  background: var(--colab-lila);
+  color: var(--colab-texto);
+  font-weight: 800;
+}
+
+.colaborador-theme .productos-header h2,
+.colaborador-theme .clientes-titulo h2,
+.colaborador-theme .nueva-venta-header h1,
+.colaborador-theme .productos-tabla-card h3,
+.colaborador-theme .clientes-tabla-card h3,
+.colaborador-theme .clientes-recientes-card h3,
+.colaborador-theme .panel-venta h2 {
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .resumen-card,
+.colaborador-theme .cliente-stat-card,
+.colaborador-theme .productos-filtros,
+.colaborador-theme .clientes-filtros,
+.colaborador-theme .productos-tabla-card,
+.colaborador-theme .clientes-tabla-card,
+.colaborador-theme .clientes-recientes-card,
+.colaborador-theme .panel-venta {
+  border-color: var(--colab-borde);
+  box-shadow: 0 10px 24px rgba(76, 48, 115, 0.07);
+}
+
+.colaborador-theme button:not(.menu-item):not(.logout-btn) {
+  border-color: var(--colab-borde);
+}
+
+.colaborador-theme .btn-agregar,
+.colaborador-theme .btn-finalizar,
+.colaborador-theme .btn-agregar-cliente {
+  background: var(--colab-morado);
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .btn-agregar:hover,
+.colaborador-theme .btn-finalizar:hover,
+.colaborador-theme .btn-agregar-cliente:hover {
+  background: #bda1f2;
+}
+
+.colaborador-theme input:focus,
+.colaborador-theme select:focus,
+.colaborador-theme textarea:focus {
+  border-color: var(--colab-morado);
+  box-shadow: 0 0 0 2px rgba(205, 180, 246, 0.25);
+}
+
+@media (max-width: 900px) {
+  .colaborador-theme .colaborador-welcome {
+    grid-template-columns: 1fr;
+  }
+}
