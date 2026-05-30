@@ -38,6 +38,7 @@ function App() {
 
   const manejarLoginCorrecto = (datosSesion) => {
     setSesion({
+      id_usuario: datosSesion.id_usuario,
       rol: datosSesion.rol,
       nombre: datosSesion.nombre,
       usuario: datosSesion.usuario,

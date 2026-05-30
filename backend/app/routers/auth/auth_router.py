@@ -5,10 +5,8 @@ from sqlalchemy.orm import Session
 from app.auth.security import (
     crear_token_acceso,
     obtener_usuario_actual,
-    verificar_password_duena,
     verificar_password_hash,
 )
-from app.config import settings
 from app.database import get_db
 from app.models.empleados.empleado_model import Empleado
 from app.models.usuarios.usuario_model import UsuarioSistema
@@ -30,20 +28,6 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
     usuario = datos.Usuario.strip()
     password = datos.Password
 
-    if usuario == settings.DUENA_LOGIN_USUARIO and verificar_password_duena(password):
-        token = crear_token_acceso({
-            "sub": settings.DUENA_LOGIN_USUARIO,
-            "nombre": settings.DUENA_LOGIN_NOMBRE,
-            "rol": "duena",
-        })
-
-        return TokenResponse(
-            access_token=token,
-            usuario=settings.DUENA_LOGIN_USUARIO,
-            nombre=settings.DUENA_LOGIN_NOMBRE,
-            rol="duena"
-        )
-
     data = db.query(UsuarioSistema, Empleado).join(
         Empleado,
         UsuarioSistema.ID_Empleado == Empleado.ID_Empleado
@@ -58,10 +42,11 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
         )
 
     usuario_sistema, empleado = data
+    rol = usuario_sistema.Rol.lower()
 
-    if usuario_sistema.Estado != "ACTIVO" or empleado.FechaFin:
+    if usuario_sistema.Estado.upper() != "ACTIVO" or empleado.FechaFin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="El usuario se encuentra inactivo."
         )
 
@@ -73,17 +58,19 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
 
     nombre_empleado = f"{empleado.Nombres} {empleado.Apellidos}".strip()
     token = crear_token_acceso({
+        "id_usuario": usuario_sistema.ID_Usuario,
         "sub": usuario_sistema.Usuario,
         "nombre": nombre_empleado,
-        "rol": usuario_sistema.Rol.lower(),
+        "rol": rol,
         "id_empleado": empleado.ID_Empleado,
     })
 
     return TokenResponse(
         access_token=token,
+        id_usuario=usuario_sistema.ID_Usuario,
         usuario=usuario_sistema.Usuario,
         nombre=nombre_empleado,
-        rol=usuario_sistema.Rol.lower(),
+        rol=rol,
         id_empleado=empleado.ID_Empleado
     )
 

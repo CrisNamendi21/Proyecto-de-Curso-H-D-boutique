@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 from datetime import datetime, timedelta, timezone
+from typing import Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -37,7 +38,7 @@ def generar_hash_password(password: str) -> str:
     hash_generado = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
-        settings.DUENA_PASSWORD_SALT.encode("utf-8"),
+        settings.PASSWORD_HASH_SALT.encode("utf-8"),
         120000
     ).hex()
 
@@ -47,10 +48,6 @@ def generar_hash_password(password: str) -> str:
 def verificar_password_hash(password: str, password_hash: str) -> bool:
     hash_generado = generar_hash_password(password)
     return hmac.compare_digest(hash_generado, password_hash)
-
-
-def verificar_password_duena(password: str) -> bool:
-    return verificar_password_hash(password, settings.DUENA_PASSWORD_HASH)
 
 
 def crear_token_acceso(datos: dict) -> str:
@@ -79,7 +76,7 @@ def decodificar_token(token: str) -> dict:
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido."
+            detail="Token invalido."
         ) from exc
 
     try:
@@ -87,13 +84,13 @@ def decodificar_token(token: str) -> dict:
     except (json.JSONDecodeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido."
+            detail="Token invalido."
         ) from exc
 
     if header.get("alg") != settings.JWT_ALGORITHM:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido."
+            detail="Token invalido."
         )
 
     firma_esperada = _firmar_jwt(header_codificado, payload_codificado)
@@ -101,7 +98,7 @@ def decodificar_token(token: str) -> dict:
     if not hmac.compare_digest(firma, firma_esperada):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido."
+            detail="Token invalido."
         )
 
     try:
@@ -109,7 +106,7 @@ def decodificar_token(token: str) -> dict:
     except (json.JSONDecodeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido."
+            detail="Token invalido."
         ) from exc
 
     expiracion = payload.get("exp")
@@ -118,7 +115,7 @@ def decodificar_token(token: str) -> dict:
     if not expiracion or ahora > expiracion:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="La sesión expiró."
+            detail="La sesion expiro."
         )
 
     return payload
@@ -130,23 +127,42 @@ def obtener_usuario_actual(
     if not credenciales:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token de autenticación requerido."
+            detail="Token de autenticacion requerido."
         )
 
     payload = decodificar_token(credenciales.credentials)
+    id_usuario = payload.get("id_usuario")
     usuario = payload.get("sub")
     nombre = payload.get("nombre")
-    rol = payload.get("rol")
+    rol = payload.get("rol", "").lower()
 
-    if not usuario or rol not in ("duena", "colaborador"):
+    if not id_usuario or not usuario or rol not in ("duena", "colaborador"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token de autenticación inválido."
+            detail="Token de autenticacion invalido."
         )
 
     return UsuarioAutenticado(
+        id_usuario=id_usuario,
         usuario=usuario,
-        nombre=nombre or settings.DUENA_LOGIN_NOMBRE,
+        nombre=nombre or usuario,
         rol=rol,
         id_empleado=payload.get("id_empleado")
     )
+
+
+def requerir_roles(*roles_permitidos: str) -> Callable:
+    roles_normalizados = {rol.lower() for rol in roles_permitidos}
+
+    def validador(
+        usuario_actual: UsuarioAutenticado = Depends(obtener_usuario_actual)
+    ) -> UsuarioAutenticado:
+        if usuario_actual.rol.lower() not in roles_normalizados:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permiso para acceder a este recurso."
+            )
+
+        return usuario_actual
+
+    return validador
