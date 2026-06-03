@@ -31,7 +31,7 @@ function Recibos() {
   const [errorRecibos, setErrorRecibos] = useState("");
   const [filtros, setFiltros] = useState({
     busqueda: "",
-    fecha: obtenerFechaActual(),
+    fecha: "",
     medioPago: "Todos",
   });
 
@@ -86,8 +86,12 @@ function Recibos() {
   };
 
   useEffect(() => {
-    cargarRecibos();
-  }, []);
+    const temporizador = setTimeout(() => {
+      cargarRecibos(filtros);
+    }, 300);
+
+    return () => clearTimeout(temporizador);
+  }, [filtros]);
 
   const manejarFiltro = (campo) => (e) => {
     setFiltros((filtrosActuales) => ({
@@ -99,12 +103,11 @@ function Recibos() {
   const limpiarFiltros = () => {
     const filtrosLimpios = {
       busqueda: "",
-      fecha: obtenerFechaActual(),
+      fecha: "",
       medioPago: "Todos",
     };
 
     setFiltros(filtrosLimpios);
-    cargarRecibos(filtrosLimpios);
   };
 
   const obtenerClaseEstado = (estado) => {
@@ -215,9 +218,6 @@ function Recibos() {
         </div>
 
         <div className="acciones-filtros">
-          <button type="button" onClick={() => cargarRecibos(filtros)}>
-            Filtrar
-          </button>
           <button type="button" onClick={limpiarFiltros}>
             Limpiar
           </button>

@@ -309,6 +309,42 @@
   font-weight: 600;
 }
 
+.estadisticas-top-panel {
+  margin-top: 24px;
+}
+
+.estadisticas-top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.estadisticas-top-header h3 {
+  margin: 0;
+}
+
+.estadisticas-top-header select {
+  border: 1px solid #f5b6cf;
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: #fff7fb;
+  color: #30484f;
+  font-weight: 700;
+}
+
+.estadisticas-top-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.estadisticas-top-grid h4 {
+  margin: 0 0 10px;
+  color: #30484f;
+}
+
 /* VISTAS INTERNAS */
 
 .vista-modulo {

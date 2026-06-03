@@ -37,6 +37,32 @@ def _texto_presente(valor):
     return valor is not None and str(valor).strip() != ""
 
 
+def _normalizar_texto(valor):
+    return str(valor or "").strip().lower()
+
+
+def _buscar_cliente_existente(db: Session, datos_cliente):
+    nombres = _normalizar_texto(datos_cliente.Nombres)
+    apellidos = _normalizar_texto(datos_cliente.Apellidos)
+    telefono = str(datos_cliente.NumeroTelefono or "").strip()
+
+    if telefono:
+        cliente_por_telefono = db.query(Cliente).filter(
+            Cliente.NumeroTelefono == telefono
+        ).first()
+
+        if cliente_por_telefono:
+            return cliente_por_telefono
+
+    if nombres and apellidos:
+        return db.query(Cliente).filter(
+            func.lower(func.coalesce(Cliente.Nombres, "")) == nombres,
+            func.lower(func.coalesce(Cliente.Apellidos, "")) == apellidos,
+        ).first()
+
+    return None
+
+
 def _obtener_departamento_default(db: Session):
     departamento = db.query(Departamento).filter(
         Departamento.ID_Departamento == 1
@@ -102,6 +128,11 @@ def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
             status_code=400,
             detail="Debes enviar nombres y apellidos del cliente."
         )
+
+    cliente_existente = _buscar_cliente_existente(db, datos_cliente)
+
+    if cliente_existente:
+        return cliente_existente
 
     if es_delivery:
         if not _texto_presente(datos_cliente.NumeroTelefono):
@@ -265,7 +296,6 @@ def obtener_resumen_ventas_dia(
     metodo_pago: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    fecha_consulta = fecha or date.today()
     metodo_filtrado = _normalizar_metodo_pago(metodo_pago)
     cliente_filtrado = cliente.strip().lower() if cliente and cliente.strip() else None
 
@@ -275,9 +305,10 @@ def obtener_resumen_ventas_dia(
     ).outerjoin(
         Recibo,
         Recibo.ID_Venta == Venta.ID_Venta
-    ).filter(
-        Venta.FechaVenta == fecha_consulta
     )
+
+    if fecha:
+        ventas_query = ventas_query.filter(Venta.FechaVenta == fecha)
 
     if cliente_filtrado:
         patron_cliente = f"%{cliente_filtrado}%"
@@ -555,6 +586,12 @@ def registrar_venta_completa(
                 raise HTTPException(
                     status_code=404,
                     detail=f"Producto con ID {item.ID_Producto} no encontrado"
+                )
+
+            if str(producto.Estado or "").strip().upper() != "ACTIVO":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El producto con ID {item.ID_Producto} no está activo para venta."
                 )
 
             if producto.Stock < item.Cantidad:

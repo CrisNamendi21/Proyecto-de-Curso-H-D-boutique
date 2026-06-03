@@ -9,7 +9,11 @@ from app.models.clientes.cliente_model import Cliente
 from app.models.productos.producto_model import Producto
 from app.models.ventas.detalle_venta_model import DetalleVenta
 from app.models.ventas.venta_model import Venta
-from app.schemas.dashboard.dashboard_schema import DashboardResponse
+from app.schemas.dashboard.dashboard_schema import (
+    ClienteTopDashboard,
+    DashboardResponse,
+    ProductoTopDashboard,
+)
 
 
 router = APIRouter(
@@ -41,6 +45,11 @@ def _nombre_cliente(cliente: Cliente):
     return nombre or "Cliente sin nombre"
 
 
+def _nombre_cliente_valores(nombres, apellidos, id_cliente):
+    nombre = f"{nombres or ''} {apellidos or ''}".strip()
+    return nombre or f"Cliente {id_cliente}"
+
+
 def _resumen_producto(detalles):
     if not detalles:
         return "Sin productos"
@@ -51,6 +60,29 @@ def _resumen_producto(detalles):
         return primer_producto
 
     return f"{primer_producto} + {len(detalles) - 1} más"
+
+
+def _rango_periodo(periodo: str):
+    hoy = date.today()
+    periodo_normalizado = str(periodo or "general").strip().lower()
+
+    if periodo_normalizado == "semanal":
+        inicio = hoy - timedelta(days=hoy.weekday())
+        return inicio, inicio + timedelta(days=7)
+
+    if periodo_normalizado == "mensual":
+        return _inicio_mes(hoy), _inicio_mes_siguiente(hoy)
+
+    return None, None
+
+
+def _aplicar_periodo(query, periodo: str):
+    inicio, fin = _rango_periodo(periodo)
+
+    if inicio and fin:
+        return query.filter(Venta.FechaVenta >= inicio, Venta.FechaVenta < fin)
+
+    return query
 
 
 @router.get("/", response_model=DashboardResponse)
@@ -154,3 +186,78 @@ def obtener_dashboard(db: Session = Depends(get_db)):
         "ventas_semanales": ventas_semanales,
         "ultimas_ventas": ultimas_ventas
     }
+
+
+@router.get("/clientes-top", response_model=list[ClienteTopDashboard])
+def obtener_clientes_top(
+    periodo: str = "general",
+    db: Session = Depends(get_db)
+):
+    query = db.query(
+        Cliente.ID_Cliente,
+        Cliente.Nombres,
+        Cliente.Apellidos,
+        func.count(Venta.ID_Venta),
+        func.coalesce(func.sum(Venta.Total), 0),
+    ).join(
+        Venta,
+        Venta.ID_Cliente == Cliente.ID_Cliente
+    )
+
+    query = _aplicar_periodo(query, periodo)
+
+    clientes = query.group_by(
+        Cliente.ID_Cliente,
+        Cliente.Nombres,
+        Cliente.Apellidos,
+    ).order_by(
+        func.coalesce(func.sum(Venta.Total), 0).desc()
+    ).limit(5).all()
+
+    return [
+        {
+            "ID_Cliente": id_cliente,
+            "cliente": _nombre_cliente_valores(nombres, apellidos, id_cliente),
+            "compras": int(compras or 0),
+            "total": _a_float(total),
+        }
+        for id_cliente, nombres, apellidos, compras, total in clientes
+    ]
+
+
+@router.get("/productos-top", response_model=list[ProductoTopDashboard])
+def obtener_productos_top(
+    periodo: str = "general",
+    db: Session = Depends(get_db)
+):
+    query = db.query(
+        Producto.ID_Producto,
+        Producto.Nombre,
+        func.coalesce(func.sum(DetalleVenta.Cantidad), 0),
+        func.coalesce(func.sum(DetalleVenta.subtotal), 0),
+    ).join(
+        DetalleVenta,
+        DetalleVenta.ID_Producto == Producto.ID_Producto
+    ).join(
+        Venta,
+        DetalleVenta.ID_Venta == Venta.ID_Venta
+    )
+
+    query = _aplicar_periodo(query, periodo)
+
+    productos = query.group_by(
+        Producto.ID_Producto,
+        Producto.Nombre,
+    ).order_by(
+        func.coalesce(func.sum(DetalleVenta.Cantidad), 0).desc()
+    ).limit(5).all()
+
+    return [
+        {
+            "ID_Producto": id_producto,
+            "producto": nombre,
+            "cantidad": int(cantidad or 0),
+            "total": _a_float(total),
+        }
+        for id_producto, nombre, cantidad, total in productos
+    ]

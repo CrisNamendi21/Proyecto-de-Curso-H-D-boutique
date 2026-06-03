@@ -225,6 +225,9 @@ def registrar_compra_completa(
 
     estado = compra.Estado.strip().capitalize()
 
+    if estado == "Recibido":
+        estado = "Recibida"
+
     if estado not in ("Pendiente", "Recibida"):
         raise HTTPException(status_code=400, detail="Estado de compra inválido.")
 

@@ -11,6 +11,7 @@ from app.models.catalogos.talla_model import Talla
 from app.schemas.productos.producto_schema import (
     ProductoCompletoCreate,
     ProductoCreate,
+    ProductoEstadoUpdate,
     ProductoInventarioResumen,
     ProductoResponse,
     ProductoUpdate,
@@ -21,6 +22,18 @@ router = APIRouter(
     prefix="/productos",
     tags=["Productos"]
 )
+
+
+UMBRAL_BAJO_STOCK = 5
+
+
+def _normalizar_estado_producto(estado: str):
+    estado_normalizado = str(estado or "").strip().upper()
+
+    if estado_normalizado not in ("ACTIVO", "INACTIVO"):
+        raise HTTPException(status_code=400, detail="Estado de producto inválido.")
+
+    return estado_normalizado
 
 
 def producto_con_precio(producto: Producto, db: Session):
@@ -78,7 +91,10 @@ def obtener_resumen_inventario(db: Session = Depends(get_db)):
     productos = db.query(Producto).all()
     total_productos = len(productos)
     productos_bajos_stock = sum(
-        1 for producto in productos if producto.Stock > 0 and producto.Stock <= 5
+        1 for producto in productos
+        if producto.Stock > 0
+        and producto.Stock <= UMBRAL_BAJO_STOCK
+        and str(producto.Estado or "").strip().upper() == "ACTIVO"
     )
     productos_sin_stock = sum(1 for producto in productos if producto.Stock == 0)
 
@@ -172,12 +188,17 @@ def crear_producto_completo(producto: ProductoCompletoCreate, db: Session = Depe
         raise HTTPException(status_code=404, detail="Proveedor no encontrado.")
 
     try:
+        estado = _normalizar_estado_producto(producto.Estado)
+
+        if producto.Stock == 0:
+            estado = "INACTIVO"
+
         nuevo_producto = Producto(
             ID_Categoria=producto.ID_Categoria,
             ID_Talla=producto.ID_Talla,
             Nombre=producto.Nombre.strip(),
             Stock=producto.Stock,
-            Estado=producto.Estado,
+            Estado=estado,
             Descripcion=producto.Descripcion,
         )
 
@@ -198,6 +219,34 @@ def crear_producto_completo(producto: ProductoCompletoCreate, db: Session = Depe
     except Exception:
         db.rollback()
         raise
+
+
+@router.patch("/{id_producto}/estado", response_model=ProductoResponse)
+def cambiar_estado_producto(
+    id_producto: int,
+    datos: ProductoEstadoUpdate,
+    db: Session = Depends(get_db)
+):
+    producto = db.query(Producto).filter(
+        Producto.ID_Producto == id_producto
+    ).first()
+
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado.")
+
+    estado = _normalizar_estado_producto(datos.Estado)
+
+    if estado == "ACTIVO" and producto.Stock <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede activar un producto sin stock."
+        )
+
+    producto.Estado = estado
+    db.commit()
+    db.refresh(producto)
+
+    return producto_con_precio(producto, db)
 
 
 @router.put("/{id_producto}", response_model=ProductoResponse)

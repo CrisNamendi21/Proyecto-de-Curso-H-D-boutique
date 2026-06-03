@@ -42,9 +42,9 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
         )
 
     usuario_sistema, empleado = data
-    rol = usuario_sistema.Rol.lower()
+    rol = usuario_sistema.Rol.strip().lower()
 
-    if usuario_sistema.Estado.upper() != "ACTIVO" or empleado.FechaFin:
+    if usuario_sistema.Estado.strip().upper() != "ACTIVO" or empleado.FechaFin:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="El usuario se encuentra inactivo."

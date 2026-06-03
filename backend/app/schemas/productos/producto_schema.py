@@ -30,6 +30,10 @@ class ProductoUpdate(BaseModel):
     Descripcion: Optional[str] = None
 
 
+class ProductoEstadoUpdate(BaseModel):
+    Estado: str
+
+
 class ProductoResponse(ProductoBase):
     ID_Producto: int
     PrecioUnitario: Optional[Decimal] = None

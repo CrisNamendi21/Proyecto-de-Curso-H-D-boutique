@@ -33,6 +33,10 @@ async function procesarRespuesta(respuesta, mensajeError) {
   if (!respuesta.ok) {
     const detalle = datos?.detail;
 
+    if (respuesta.status === 401 || respuesta.status === 403) {
+      eliminarToken();
+    }
+
     if (Array.isArray(detalle)) {
       throw new Error("Hay campos inválidos o incompletos en la solicitud.");
     }
@@ -126,6 +130,26 @@ export function obtenerResumenInventario() {
 
 export function crearProductoCompleto(datos) {
   return enviarDatos("/productos/registrar-completo", datos);
+}
+
+export async function cambiarEstadoProducto(idProducto, estado) {
+  try {
+    const respuesta = await fetch(`${API_URL}/productos/${idProducto}/estado`, {
+      method: "PATCH",
+      headers: construirHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({ Estado: estado }),
+    });
+
+    return await procesarRespuesta(
+      respuesta,
+      "Error al cambiar el estado del producto"
+    );
+  } catch (error) {
+    console.error("Error en cambiarEstadoProducto:", error);
+    throw error;
+  }
 }
 
 export function obtenerCategorias() {
@@ -309,6 +333,20 @@ export function registrarVentaCompleta(datos) {
 
 export function obtenerDashboard() {
   return obtenerDatos("/dashboard/");
+}
+
+export function obtenerClientesTop(periodo = "general") {
+  const params = new URLSearchParams();
+  params.append("periodo", periodo);
+
+  return obtenerDatos(`/dashboard/clientes-top?${params.toString()}`);
+}
+
+export function obtenerProductosTop(periodo = "general") {
+  const params = new URLSearchParams();
+  params.append("periodo", periodo);
+
+  return obtenerDatos(`/dashboard/productos-top?${params.toString()}`);
 }
 
 export function obtenerResumenVentasDia(filtros = {}) {

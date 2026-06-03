@@ -27,7 +27,7 @@ function Ventas() {
   };
 
   const [filtros, setFiltros] = useState({
-    fecha: obtenerFechaActual(),
+    fecha: "",
     cliente: "",
     metodoPago: "Todos",
   });
@@ -48,11 +48,6 @@ function Ventas() {
   };
 
   const cargarVentas = async (filtrosConsulta = filtros) => {
-    if (!filtrosConsulta.fecha) {
-      setErrorVentas("Debes seleccionar una fecha.");
-      return;
-    }
-
     setCargandoVentas(true);
     setErrorVentas("");
 
@@ -73,7 +68,7 @@ function Ventas() {
       console.error("Error al cargar ventas:", error);
       setDatosVentas(datosIniciales);
       setErrorVentas(
-        error.message || "No se pudieron cargar las ventas del día."
+        error.message || "No se pudieron cargar las ventas."
       );
     } finally {
       setCargandoVentas(false);
@@ -81,8 +76,12 @@ function Ventas() {
   };
 
   useEffect(() => {
-    cargarVentas();
-  }, []);
+    const temporizador = setTimeout(() => {
+      cargarVentas(filtros);
+    }, 300);
+
+    return () => clearTimeout(temporizador);
+  }, [filtros]);
 
   const manejarFiltro = (campo) => (e) => {
     setFiltros((filtrosActuales) => ({
@@ -91,19 +90,14 @@ function Ventas() {
     }));
   };
 
-  const aplicarFiltros = () => {
-    cargarVentas(filtros);
-  };
-
   const limpiarFiltros = () => {
     const filtrosLimpios = {
-      fecha: obtenerFechaActual(),
+      fecha: "",
       cliente: "",
       metodoPago: "Todos",
     };
 
     setFiltros(filtrosLimpios);
-    cargarVentas(filtrosLimpios);
   };
 
   const obtenerClaseMetodo = (metodo) => {
@@ -148,11 +142,11 @@ function Ventas() {
   return (
     <section className="ventas-page">
       <div className="ventas-header">
-        <h1>Ventas del día</h1>
+        <h1>Ventas</h1>
       </div>
 
       {cargandoVentas && (
-        <p className="estado-ventas">Cargando ventas del día...</p>
+        <p className="estado-ventas">Cargando ventas...</p>
       )}
 
       {errorVentas && <p className="error-ventas">{errorVentas}</p>}
@@ -160,7 +154,7 @@ function Ventas() {
       <div className="ventas-resumen-cards">
         <article className="venta-card">
           <div>
-            <span>Ventas de hoy</span>
+            <span>Total de ventas</span>
             <strong>{formatearDinero(datosVentas.resumen.ventas_hoy)}</strong>
           </div>
           <div className="card-icono">▣</div>
@@ -218,9 +212,6 @@ function Ventas() {
         </div>
 
         <div className="acciones-filtros">
-          <button type="button" onClick={aplicarFiltros}>
-            Filtrar
-          </button>
           <button type="button" onClick={limpiarFiltros}>
             Limpiar
           </button>
@@ -285,7 +276,7 @@ function Ventas() {
 
           <article className="panel-ventas productos-vendidos">
             <div className="panel-titulo">
-              <h2>Productos más vendidos hoy</h2>
+              <h2>Productos más vendidos</h2>
             </div>
 
             <div className="tabla-productos-vendidos">
@@ -359,21 +350,6 @@ function Ventas() {
             </div>
           </article>
 
-          <article className="panel-ventas resumen-dia-panel">
-            <div className="panel-titulo">
-              <h2>Resumen del día</h2>
-            </div>
-
-            <div className="resumen-dia-linea">
-              <span>Total ventas</span>
-              <strong>{formatearDinero(datosVentas.resumen.ventas_hoy)}</strong>
-            </div>
-
-            <div className="resumen-dia-total">
-              <span>Total neto</span>
-              <strong>{formatearDinero(datosVentas.resumen.total_neto)}</strong>
-            </div>
-          </article>
         </div>
       </div>
 

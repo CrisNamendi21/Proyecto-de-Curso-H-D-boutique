@@ -419,6 +419,7 @@ def listar_recibos(
 
         if texto_numerico.isdigit():
             filtros_busqueda.append(Recibo.ID_Recibo == int(texto_numerico))
+            filtros_busqueda.append(Venta.ID_Venta == int(texto_numerico))
 
         query = query.filter(or_(*filtros_busqueda))
 

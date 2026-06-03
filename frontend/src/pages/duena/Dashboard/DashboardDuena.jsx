@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { obtenerDashboard } from "../../../api/api";
+import {
+  obtenerClientesTop,
+  obtenerDashboard,
+  obtenerProductosTop,
+} from "../../../api/api";
 import "./DashboardDuena.css";
 
 import Productos from "../Productos/Productos";
@@ -58,6 +62,9 @@ function formatearFecha(fecha) {
 function DashboardDuena({ setRol }) {
   const [vistaActual, setVistaActual] = useState("dashboard");
   const [dashboard, setDashboard] = useState(null);
+  const [periodoTop, setPeriodoTop] = useState("mensual");
+  const [clientesTop, setClientesTop] = useState([]);
+  const [productosTop, setProductosTop] = useState([]);
   const [cargandoDashboard, setCargandoDashboard] = useState(true);
   const [errorDashboard, setErrorDashboard] = useState("");
 
@@ -79,6 +86,26 @@ function DashboardDuena({ setRol }) {
   useEffect(() => {
     cargarDashboard();
   }, []);
+
+  useEffect(() => {
+    const cargarEstadisticasTop = async () => {
+      try {
+        const [clientesRespuesta, productosRespuesta] = await Promise.all([
+          obtenerClientesTop(periodoTop),
+          obtenerProductosTop(periodoTop),
+        ]);
+
+        setClientesTop(clientesRespuesta || []);
+        setProductosTop(productosRespuesta || []);
+      } catch (error) {
+        console.error("Error al cargar estadísticas top:", error);
+        setClientesTop([]);
+        setProductosTop([]);
+      }
+    };
+
+    cargarEstadisticasTop();
+  }, [periodoTop]);
 
   const resumen = dashboard?.resumen || resumenInicial;
   const ventasSemanales = dashboard?.ventas_semanales || ventasSemanalesIniciales;
@@ -317,6 +344,82 @@ function DashboardDuena({ setRol }) {
                         )}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+
+                <div className="panel estadisticas-top-panel">
+                  <div className="estadisticas-top-header">
+                    <h3>Estadísticas de ventas</h3>
+                    <select
+                      value={periodoTop}
+                      onChange={(e) => setPeriodoTop(e.target.value)}
+                    >
+                      <option value="general">General</option>
+                      <option value="mensual">Mensual</option>
+                      <option value="semanal">Semanal</option>
+                    </select>
+                  </div>
+
+                  <div className="estadisticas-top-grid">
+                    <div>
+                      <h4>Clientes que más han comprado</h4>
+                      <table className="sales-table">
+                        <thead>
+                          <tr>
+                            <th>Cliente</th>
+                            <th>Compras</th>
+                            <th>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clientesTop.length > 0 ? (
+                            clientesTop.map((cliente) => (
+                              <tr key={cliente.ID_Cliente}>
+                                <td>{cliente.cliente}</td>
+                                <td>{cliente.compras}</td>
+                                <td>{formatearMoneda(cliente.total)}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td className="sin-ventas-dashboard" colSpan="3">
+                                No hay clientes para este periodo.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div>
+                      <h4>Productos más vendidos</h4>
+                      <table className="sales-table">
+                        <thead>
+                          <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {productosTop.length > 0 ? (
+                            productosTop.map((producto) => (
+                              <tr key={producto.ID_Producto}>
+                                <td>{producto.producto}</td>
+                                <td>{producto.cantidad}</td>
+                                <td>{formatearMoneda(producto.total)}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td className="sin-ventas-dashboard" colSpan="3">
+                                No hay productos para este periodo.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </>

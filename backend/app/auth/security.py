@@ -7,8 +7,12 @@ from typing import Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.database import get_db
+from app.models.empleados.empleado_model import Empleado
+from app.models.usuarios.usuario_model import UsuarioSistema
 from app.schemas.auth.auth_schema import UsuarioAutenticado
 
 
@@ -122,7 +126,8 @@ def decodificar_token(token: str) -> dict:
 
 
 def obtener_usuario_actual(
-    credenciales: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)
+    credenciales: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
 ) -> UsuarioAutenticado:
     if not credenciales:
         raise HTTPException(
@@ -134,12 +139,36 @@ def obtener_usuario_actual(
     id_usuario = payload.get("id_usuario")
     usuario = payload.get("sub")
     nombre = payload.get("nombre")
-    rol = payload.get("rol", "").lower()
+    rol = payload.get("rol", "").strip().lower()
 
     if not id_usuario or not usuario or rol not in ("duena", "colaborador"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de autenticacion invalido."
+        )
+
+    data = db.query(UsuarioSistema, Empleado).join(
+        Empleado,
+        UsuarioSistema.ID_Empleado == Empleado.ID_Empleado
+    ).filter(
+        UsuarioSistema.ID_Usuario == id_usuario
+    ).first()
+
+    if not data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticacion invalido."
+        )
+
+    usuario_sistema, empleado = data
+
+    if (
+        usuario_sistema.Estado.strip().upper() != "ACTIVO"
+        or empleado.FechaFin
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario se encuentra inactivo."
         )
 
     return UsuarioAutenticado(

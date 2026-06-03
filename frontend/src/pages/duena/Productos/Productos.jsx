@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  cambiarEstadoProducto,
   crearProductoCompleto,
   obtenerCategorias,
   obtenerProductosInventario,
@@ -44,6 +45,7 @@ function Productos() {
   const [proveedores, setProveedores] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [productoProcesando, setProductoProcesando] = useState(null);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
@@ -270,6 +272,30 @@ function Productos() {
     }
   };
 
+  const alternarEstadoProducto = async (producto) => {
+    const estadoActual = String(producto.Estado || "").trim().toUpperCase();
+    const nuevoEstado = estadoActual === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+
+    setError("");
+    setMensaje("");
+    setProductoProcesando(producto.ID_Producto);
+
+    try {
+      await cambiarEstadoProducto(producto.ID_Producto, nuevoEstado);
+      setMensaje(
+        nuevoEstado === "ACTIVO"
+          ? "Producto activado correctamente."
+          : "Producto desactivado correctamente."
+      );
+      await cargarDatos();
+    } catch (errorEstado) {
+      console.error("Error al cambiar estado del producto:", errorEstado);
+      setError(errorEstado.message || "No se pudo cambiar el estado del producto.");
+    } finally {
+      setProductoProcesando(null);
+    }
+  };
+
   const productosFiltrados = useMemo(() => {
     return productos.filter((producto) => {
       const coincideNombre = producto.Nombre.toLowerCase().includes(
@@ -406,6 +432,7 @@ function Productos() {
               <th>Costo</th>
               <th>Stock</th>
               <th>Estado</th>
+              <th>Acción</th>
             </tr>
           </thead>
 
@@ -434,12 +461,25 @@ function Productos() {
                         {estadoProducto}
                       </span>
                     </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn-estado-producto"
+                        onClick={() => alternarEstadoProducto(producto)}
+                        disabled={productoProcesando === producto.ID_Producto}
+                      >
+                        {String(producto.Estado || "").trim().toUpperCase() ===
+                        "ACTIVO"
+                          ? "Desactivar"
+                          : "Activar"}
+                      </button>
+                    </td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan="8" className="sin-resultados">
+                <td colSpan="9" className="sin-resultados">
                   No se encontraron productos con esos filtros.
                 </td>
               </tr>

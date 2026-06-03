@@ -131,18 +131,19 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
   }, [departamentoCliente, tipoCliente]);
 
   useEffect(() => {
-    if (tipoCliente !== "delivery") {
+    if (tipoCliente === "generico") {
       setSugerenciasClientes([]);
       setMostrarSugerenciasClientes(false);
       setBuscandoClientes(false);
       return;
     }
 
-    const termino = nombresCliente.trim();
+    const termino = `${nombresCliente} ${apellidosCliente}`.trim();
 
     if (
       clienteSeleccionado &&
-      String(clienteSeleccionado.Nombres || "") === termino
+      String(clienteSeleccionado.Nombres || "") === nombresCliente.trim() &&
+      String(clienteSeleccionado.Apellidos || "") === apellidosCliente.trim()
     ) {
       setSugerenciasClientes([]);
       setMostrarSugerenciasClientes(false);
@@ -177,7 +178,7 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
     }, 300);
 
     return () => clearTimeout(temporizador);
-  }, [clienteSeleccionado, nombresCliente, tipoCliente]);
+  }, [apellidosCliente, clienteSeleccionado, nombresCliente, tipoCliente]);
 
   const manejarTextoCliente = (setter) => (e) => {
     const valor = e.target.value;
@@ -281,9 +282,31 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
     return partes.length > 0 ? partes.join(", ") : "Sin ubicación registrada";
   };
 
-  const productosFiltrados = productos.filter((producto) =>
-    producto.Nombre.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const cantidadesReservadas = useMemo(() => {
+    return productosVenta.reduce((reservas, producto) => {
+      reservas[producto.ID_Producto] =
+        (reservas[producto.ID_Producto] || 0) + producto.Cantidad;
+      return reservas;
+    }, {});
+  }, [productosVenta]);
+
+  const obtenerStockDisponible = (producto) => {
+    const stockReal = Number(producto.Stock) || 0;
+    const reservado = cantidadesReservadas[producto.ID_Producto] || 0;
+    return Math.max(stockReal - reservado, 0);
+  };
+
+  const productoActivo = (producto) => {
+    return String(producto.Estado || "").trim().toUpperCase() === "ACTIVO";
+  };
+
+  const productosFiltrados = productos.filter((producto) => {
+    const coincideNombre = producto.Nombre.toLowerCase().includes(
+      busqueda.toLowerCase()
+    );
+
+    return coincideNombre && productoActivo(producto) && obtenerStockDisponible(producto) > 0;
+  });
 
   const obtenerPrecioProducto = (producto) => {
     return Number(producto.PrecioUnitario) || 0;
@@ -306,7 +329,9 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
       return;
     }
 
-    if (producto.Stock <= 0) {
+    const stockDisponible = obtenerStockDisponible(producto);
+
+    if (stockDisponible <= 0) {
       mostrarMensaje("Este producto no tiene stock disponible.", "error");
       return;
     }
@@ -316,7 +341,7 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
     );
 
     if (productoExistente) {
-      if (productoExistente.Cantidad >= producto.Stock) {
+      if (stockDisponible <= 0) {
         mostrarMensaje(
           "No puedes agregar más unidades que el stock disponible.",
           "error"
@@ -577,19 +602,17 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
     };
 
     if (
-      tipoCliente === "delivery" &&
       clienteSeleccionado &&
-      clienteTieneDeliveryCompleto(clienteSeleccionado) &&
       String(clienteSeleccionado.Nombres || "") === nombresCliente.trim() &&
-      String(clienteSeleccionado.Apellidos || "") === apellidosCliente.trim() &&
-      String(clienteSeleccionado.NumeroTelefono || "") === telefonoCliente.trim() &&
-      String(clienteSeleccionado.Direccion || "") === direccionCliente.trim() &&
-      String(clienteSeleccionado.ID_Departamento || "") ===
-        String(departamentoCliente) &&
-      String(clienteSeleccionado.ID_Municipio || "") === String(municipioCliente)
+      String(clienteSeleccionado.Apellidos || "") === apellidosCliente.trim()
     ) {
-      payload.ID_Cliente = clienteSeleccionado.ID_Cliente;
-      return payload;
+      if (
+        tipoCliente !== "delivery" ||
+        clienteTieneDeliveryCompleto(clienteSeleccionado)
+      ) {
+        payload.ID_Cliente = clienteSeleccionado.ID_Cliente;
+        return payload;
+      }
     }
 
     if (tipoCliente !== "generico") {
@@ -699,7 +722,7 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
               onChange={manejarTextoCliente(setNombresCliente)}
               onFocus={() => {
                 if (
-                  tipoCliente === "delivery" &&
+                  tipoCliente !== "generico" &&
                   sugerenciasClientes.length > 0
                 ) {
                   setMostrarSugerenciasClientes(true);
@@ -707,7 +730,7 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
               }}
             />
 
-            {tipoCliente === "delivery" &&
+            {tipoCliente !== "generico" &&
               mostrarSugerenciasClientes &&
               (buscandoClientes || sugerenciasClientes.length > 0) && (
                 <div className="sugerencias-clientes">
@@ -877,7 +900,7 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
                       </td>
                       <td>{obtenerTallaProducto(producto)}</td>
                       <td>{formatearDinero(producto.PrecioUnitario || 0)}</td>
-                      <td>{producto.Stock}</td>
+                      <td>{obtenerStockDisponible(producto)}</td>
                       <td>
                         <button
                           className="btn-agregar"
