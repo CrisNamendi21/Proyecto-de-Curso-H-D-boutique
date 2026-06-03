@@ -11,7 +11,10 @@ import "./NuevaVenta.css";
 
 const ID_EMPLEADO_TEMPORAL = 1;
 
-function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
+function NuevaVenta({
+  idEmpleado = ID_EMPLEADO_TEMPORAL,
+  registrarVenta = registrarVentaCompleta,
+}) {
   const obtenerFechaActual = () => {
     const hoy = new Date();
     const diferenciaZona = hoy.getTimezoneOffset() * 60000;
@@ -646,7 +649,7 @@ function NuevaVenta({ idEmpleado = ID_EMPLEADO_TEMPORAL }) {
     setRegistrandoVenta(true);
 
     try {
-      const respuesta = await registrarVentaCompleta(construirPayload());
+      const respuesta = await registrarVenta(construirPayload());
 
       setProductosVenta([]);
       setBusqueda("");

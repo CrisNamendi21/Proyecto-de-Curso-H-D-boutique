@@ -117,6 +117,50 @@
   font-weight: 800;
 }
 
+.colaborador-theme .estado-colaborador,
+.colaborador-theme .error-colaborador {
+  border-radius: 12px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+}
+
+.colaborador-theme .estado-colaborador {
+  background: #f7f0ff;
+  border: 1px solid var(--colab-borde);
+  color: var(--colab-texto);
+}
+
+.colaborador-theme .error-colaborador {
+  background: #fff0f6;
+  border: 1px solid #f8bbd7;
+  color: #b02663;
+}
+
+.colaborador-theme .colaborador-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.colaborador-theme .colaborador-tabla {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.colaborador-theme .colaborador-tabla th,
+.colaborador-theme .colaborador-tabla td {
+  border-bottom: 1px solid #eadffc;
+  color: var(--colab-texto);
+  padding: 11px 9px;
+  text-align: left;
+}
+
+.colaborador-theme .colaborador-tabla th {
+  color: var(--colab-suave);
+  font-size: 13px;
+}
+
 .colaborador-theme .productos-header h2,
 .colaborador-theme .clientes-titulo h2,
 .colaborador-theme .nueva-venta-header h1,
@@ -165,6 +209,10 @@
 
 @media (max-width: 900px) {
   .colaborador-theme .colaborador-welcome {
+    grid-template-columns: 1fr;
+  }
+
+  .colaborador-theme .colaborador-dashboard-grid {
     grid-template-columns: 1fr;
   }
 }

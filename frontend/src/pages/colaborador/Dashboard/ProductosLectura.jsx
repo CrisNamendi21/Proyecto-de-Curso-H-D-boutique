@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   obtenerCategorias,
-  obtenerProductosInventario,
-  obtenerResumenInventario,
+  obtenerProductosColaborador,
 } from "../../../api/api";
 import "../../duena/Productos/Productos.css";
 
@@ -55,15 +54,27 @@ function ProductosLectura() {
     setError("");
 
     try {
-      const [productosRespuesta, resumenRespuesta, categoriasRespuesta] =
+      const [productosRespuesta, categoriasRespuesta] =
         await Promise.all([
-          obtenerProductosInventario(),
-          obtenerResumenInventario(),
+          obtenerProductosColaborador(),
           obtenerCategorias(),
         ]);
 
       setProductos(productosRespuesta || []);
-      setResumen(resumenRespuesta || resumenInicial);
+      setResumen({
+        total_productos: (productosRespuesta || []).length,
+        valor_inventario: (productosRespuesta || []).reduce(
+          (total, producto) =>
+            total + Number(producto.PrecioDeCompra || 0) * Number(producto.Stock || 0),
+          0
+        ),
+        productos_bajos_stock: (productosRespuesta || []).filter(
+          (producto) => Number(producto.Stock) > 0 && Number(producto.Stock) <= 5
+        ).length,
+        productos_sin_stock: (productosRespuesta || []).filter(
+          (producto) => Number(producto.Stock) === 0
+        ).length,
+      });
       setCategorias(categoriasRespuesta || []);
     } catch (errorCarga) {
       setError(

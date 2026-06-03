@@ -426,3 +426,81 @@ export async function descargarPdfRecibo(idRecibo) {
     throw error;
   }
 }
+
+export function obtenerDashboardColaborador() {
+  return obtenerDatos("/colaborador/dashboard");
+}
+
+export function obtenerProductosColaborador(filtros = {}) {
+  const params = new URLSearchParams();
+
+  if (filtros.busqueda) {
+    params.append("busqueda", filtros.busqueda);
+  }
+
+  const query = params.toString();
+
+  return obtenerDatos(`/colaborador/productos${query ? `?${query}` : ""}`);
+}
+
+export function obtenerClientesColaborador(filtros = {}) {
+  const params = new URLSearchParams();
+
+  if (filtros.busqueda) {
+    params.append("busqueda", filtros.busqueda);
+  }
+
+  const query = params.toString();
+
+  return obtenerDatos(`/colaborador/clientes${query ? `?${query}` : ""}`);
+}
+
+export function registrarVentaColaborador(datos) {
+  return enviarDatos("/colaborador/ventas/registrar-completa", datos);
+}
+
+export function obtenerRecibosColaborador(filtros = {}) {
+  const params = new URLSearchParams();
+
+  if (filtros.busqueda) {
+    params.append("busqueda", filtros.busqueda);
+  }
+
+  if (filtros.medioPago && filtros.medioPago !== "Todos") {
+    params.append("medio_pago", filtros.medioPago);
+  }
+
+  const query = params.toString();
+
+  return obtenerDatos(`/colaborador/recibos${query ? `?${query}` : ""}`);
+}
+
+export function obtenerDetalleReciboColaborador(idRecibo) {
+  return obtenerDatos(`/colaborador/recibos/${idRecibo}`);
+}
+
+export async function descargarPdfReciboColaborador(idRecibo) {
+  try {
+    const respuesta = await fetch(`${API_URL}/colaborador/recibos/${idRecibo}/pdf`, {
+      headers: construirHeaders(),
+    });
+
+    if (!respuesta.ok) {
+      await procesarRespuesta(respuesta, "Error al descargar el PDF del recibo");
+    }
+
+    const blob = await respuesta.blob();
+    const url = window.URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+
+    enlace.href = url;
+    enlace.download = `recibo-${idRecibo}.pdf`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error en descargarPdfReciboColaborador:", error);
+    throw error;
+  }
+}
