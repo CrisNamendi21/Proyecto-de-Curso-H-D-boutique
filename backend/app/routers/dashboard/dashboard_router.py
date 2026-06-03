@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from app.schemas.dashboard.dashboard_schema import (
     ClienteTopDashboard,
     DashboardResponse,
     ProductoTopDashboard,
+    ResumenVentasPeriodoResponse,
 )
 
 
@@ -29,6 +30,36 @@ def _a_float(valor):
     return float(valor or 0)
 
 
+MESES_ANIO = [
+    "Ene",
+    "Feb",
+    "Mar",
+    "Abr",
+    "May",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dic",
+]
+NOMBRES_MESES = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+]
+
+
 def _inicio_mes(fecha: date):
     return fecha.replace(day=1)
 
@@ -38,6 +69,103 @@ def _inicio_mes_siguiente(fecha: date):
         return fecha.replace(year=fecha.year + 1, month=1, day=1)
 
     return fecha.replace(month=fecha.month + 1, day=1)
+
+
+def _fin_mes(fecha: date):
+    return _inicio_mes_siguiente(fecha) - timedelta(days=1)
+
+
+def _validar_anio(anio: int):
+    if anio < 2000 or anio > 2100:
+        raise HTTPException(
+            status_code=400,
+            detail="El anio debe estar entre 2000 y 2100."
+        )
+
+
+def _item_resumen(etiqueta: str, total=0, cantidad=0):
+    return {
+        "etiqueta": etiqueta,
+        "total_vendido": _a_float(total),
+        "cantidad_ventas": int(cantidad or 0),
+    }
+
+
+def _ventas_por_fecha(db: Session, inicio: date, fin: date):
+    return db.query(
+        Venta.FechaVenta,
+        func.coalesce(func.sum(Venta.Total), 0),
+        func.count(Venta.ID_Venta),
+    ).filter(
+        Venta.FechaVenta >= inicio,
+        Venta.FechaVenta <= fin
+    ).group_by(
+        Venta.FechaVenta
+    ).all()
+
+
+def _rango_resumen_ventas(
+    periodo: str,
+    mes: int | None,
+    anio: int | None,
+    fecha_inicio: date | None,
+    fecha_fin: date | None,
+):
+    periodo_normalizado = str(periodo or "semanal").strip().lower()
+    hoy = date.today()
+
+    if fecha_inicio or fecha_fin:
+        if not fecha_inicio or not fecha_fin:
+            raise HTTPException(
+                status_code=400,
+                detail="Debes enviar fecha_inicio y fecha_fin para usar rango personalizado."
+            )
+
+        if fecha_inicio > fecha_fin:
+            raise HTTPException(
+                status_code=400,
+                detail="La fecha de inicio no puede ser mayor que la fecha final."
+            )
+
+        return "personalizado", fecha_inicio, fecha_fin, "Rango personalizado"
+
+    if periodo_normalizado == "semanal":
+        inicio = hoy - timedelta(days=hoy.weekday())
+        return "semanal", inicio, inicio + timedelta(days=6), "Semana actual"
+
+    if periodo_normalizado == "mensual":
+        anio_consulta = anio or hoy.year
+        mes_consulta = mes or hoy.month
+        _validar_anio(anio_consulta)
+
+        if mes_consulta < 1 or mes_consulta > 12:
+            raise HTTPException(
+                status_code=400,
+                detail="El mes debe estar entre 1 y 12."
+            )
+
+        inicio = date(anio_consulta, mes_consulta, 1)
+        return (
+            "mensual",
+            inicio,
+            _fin_mes(inicio),
+            f"{NOMBRES_MESES[mes_consulta - 1]} {anio_consulta}",
+        )
+
+    if periodo_normalizado == "anual":
+        anio_consulta = anio or hoy.year
+        _validar_anio(anio_consulta)
+        return (
+            "anual",
+            date(anio_consulta, 1, 1),
+            date(anio_consulta, 12, 31),
+            f"Anio {anio_consulta}",
+        )
+
+    raise HTTPException(
+        status_code=400,
+        detail="Periodo invalido. Usa semanal, mensual, anual o fechas personalizadas."
+    )
 
 
 def _nombre_cliente(cliente: Cliente):
@@ -85,8 +213,100 @@ def _aplicar_periodo(query, periodo: str):
     return query
 
 
+@router.get("/resumen-ventas", response_model=ResumenVentasPeriodoResponse)
+def obtener_resumen_ventas_periodo(
+    periodo: str = Query(default="semanal"),
+    mes: int | None = Query(default=None, ge=1, le=12),
+    anio: int | None = Query(default=None),
+    fecha_inicio: date | None = None,
+    fecha_fin: date | None = None,
+    db: Session = Depends(get_db)
+):
+    # El resumen sale de Ventas para evitar tablas derivadas que puedan quedar desactualizadas.
+    periodo_normalizado, inicio, fin, titulo = _rango_resumen_ventas(
+        periodo,
+        mes,
+        anio,
+        fecha_inicio,
+        fecha_fin,
+    )
+    ventas_data = _ventas_por_fecha(db, inicio, fin)
+
+    if periodo_normalizado == "semanal":
+        etiquetas = DIAS_SEMANA
+        totales_por_fecha = {
+            venta_fecha: (total, cantidad)
+            for venta_fecha, total, cantidad in ventas_data
+        }
+        datos = []
+
+        for indice, etiqueta in enumerate(etiquetas):
+            fecha_dia = inicio + timedelta(days=indice)
+            total, cantidad = totales_por_fecha.get(fecha_dia, (0, 0))
+            datos.append(_item_resumen(etiqueta, total, cantidad))
+    elif periodo_normalizado == "mensual":
+        etiquetas = [f"Semana {indice}" for indice in range(1, 6)]
+        acumulado = {
+            etiqueta: {"total": 0, "cantidad": 0}
+            for etiqueta in etiquetas
+        }
+
+        for venta_fecha, total, cantidad in ventas_data:
+            semana = min(((venta_fecha.day - 1) // 7) + 1, 5)
+            etiqueta = f"Semana {semana}"
+            acumulado[etiqueta]["total"] += _a_float(total)
+            acumulado[etiqueta]["cantidad"] += int(cantidad or 0)
+
+        datos = [
+            _item_resumen(etiqueta, valores["total"], valores["cantidad"])
+            for etiqueta, valores in acumulado.items()
+        ]
+    elif periodo_normalizado == "anual":
+        etiquetas = MESES_ANIO
+        acumulado = {
+            etiqueta: {"total": 0, "cantidad": 0}
+            for etiqueta in etiquetas
+        }
+
+        for venta_fecha, total, cantidad in ventas_data:
+            etiqueta = etiquetas[venta_fecha.month - 1]
+            acumulado[etiqueta]["total"] += _a_float(total)
+            acumulado[etiqueta]["cantidad"] += int(cantidad or 0)
+
+        datos = [
+            _item_resumen(etiqueta, valores["total"], valores["cantidad"])
+            for etiqueta, valores in acumulado.items()
+        ]
+    else:
+        etiquetas = [
+            venta_fecha.isoformat()
+            for venta_fecha, _, _ in ventas_data
+        ]
+        datos = [
+            _item_resumen(venta_fecha.isoformat(), total, cantidad)
+            for venta_fecha, total, cantidad in ventas_data
+        ]
+
+    total_periodo = sum(item["total_vendido"] for item in datos)
+    cantidad_ventas_periodo = sum(item["cantidad_ventas"] for item in datos)
+
+    return {
+        "periodo": periodo_normalizado,
+        "titulo": titulo,
+        "etiquetas": etiquetas,
+        "datos": datos,
+        "total_periodo": total_periodo,
+        "cantidad_ventas_periodo": cantidad_ventas_periodo,
+        "fecha_inicio": inicio.isoformat(),
+        "fecha_fin": fin.isoformat(),
+        "mes": inicio.month if periodo_normalizado == "mensual" else None,
+        "anio": inicio.year,
+    }
+
+
 @router.get("/", response_model=DashboardResponse)
 def obtener_dashboard(db: Session = Depends(get_db)):
+    # Este endpoint conserva el resumen original usado por las tarjetas principales del dashboard.
     hoy = date.today()
     inicio_mes = _inicio_mes(hoy)
     inicio_mes_siguiente = _inicio_mes_siguiente(hoy)

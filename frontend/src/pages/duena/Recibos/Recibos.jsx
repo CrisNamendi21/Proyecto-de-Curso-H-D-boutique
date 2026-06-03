@@ -66,6 +66,7 @@ function Recibos() {
     setErrorRecibos("");
 
     try {
+      // Los filtros se envian al backend para buscar tambien fuera del listado visible.
       const recibosRespuesta = await obtenerRecibos({
         fecha: filtrosConsulta.fecha,
         busqueda: filtrosConsulta.busqueda.trim(),
@@ -137,6 +138,7 @@ function Recibos() {
 
     try {
       setErrorRecibos("");
+      // El archivo final lo genera el backend para conservar el mismo formato de recibo.
       await descargarPdfRecibo(idRecibo);
     } catch (error) {
       setErrorRecibos(

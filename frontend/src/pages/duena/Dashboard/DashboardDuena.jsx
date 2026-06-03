@@ -3,6 +3,7 @@ import {
   obtenerClientesTop,
   obtenerDashboard,
   obtenerProductosTop,
+  obtenerResumenVentasDashboard,
 } from "../../../api/api";
 import "./DashboardDuena.css";
 
@@ -59,9 +60,44 @@ function formatearFecha(fecha) {
   return `${dia}/${mes}/${anio}`;
 }
 
+const resumenVentasInicial = {
+  periodo: "semanal",
+  titulo: "Semana actual",
+  etiquetas: ventasSemanalesIniciales.map((venta) => venta.dia),
+  datos: ventasSemanalesIniciales.map((venta) => ({
+    etiqueta: venta.dia,
+    total_vendido: venta.total,
+    cantidad_ventas: 0,
+  })),
+  total_periodo: 0,
+  cantidad_ventas_periodo: 0,
+};
+
+const mesesFiltro = [
+  { valor: 1, nombre: "Enero" },
+  { valor: 2, nombre: "Febrero" },
+  { valor: 3, nombre: "Marzo" },
+  { valor: 4, nombre: "Abril" },
+  { valor: 5, nombre: "Mayo" },
+  { valor: 6, nombre: "Junio" },
+  { valor: 7, nombre: "Julio" },
+  { valor: 8, nombre: "Agosto" },
+  { valor: 9, nombre: "Septiembre" },
+  { valor: 10, nombre: "Octubre" },
+  { valor: 11, nombre: "Noviembre" },
+  { valor: 12, nombre: "Diciembre" },
+];
+
 function DashboardDuena({ setRol }) {
+  const fechaActual = new Date();
   const [vistaActual, setVistaActual] = useState("dashboard");
   const [dashboard, setDashboard] = useState(null);
+  const [periodoVentas, setPeriodoVentas] = useState("semanal");
+  const [mesVentas, setMesVentas] = useState(fechaActual.getMonth() + 1);
+  const [anioVentas, setAnioVentas] = useState(fechaActual.getFullYear());
+  const [resumenVentas, setResumenVentas] = useState(resumenVentasInicial);
+  const [cargandoResumenVentas, setCargandoResumenVentas] = useState(true);
+  const [errorResumenVentas, setErrorResumenVentas] = useState("");
   const [periodoTop, setPeriodoTop] = useState("mensual");
   const [clientesTop, setClientesTop] = useState([]);
   const [productosTop, setProductosTop] = useState([]);
@@ -88,6 +124,38 @@ function DashboardDuena({ setRol }) {
   }, []);
 
   useEffect(() => {
+    const cargarResumenVentas = async () => {
+      try {
+        setCargandoResumenVentas(true);
+        setErrorResumenVentas("");
+
+        const filtros = {
+          periodo: periodoVentas,
+          anio: anioVentas,
+        };
+
+        if (periodoVentas === "mensual") {
+          filtros.mes = mesVentas;
+        }
+
+        // El grafico usa datos agrupados por backend; el frontend solo cambia el periodo.
+        const datos = await obtenerResumenVentasDashboard(filtros);
+        setResumenVentas(datos || resumenVentasInicial);
+      } catch (error) {
+        console.error("Error al cargar resumen de ventas:", error);
+        setResumenVentas(resumenVentasInicial);
+        setErrorResumenVentas(
+          error.message || "No se pudo cargar el resumen de ventas."
+        );
+      } finally {
+        setCargandoResumenVentas(false);
+      }
+    };
+
+    cargarResumenVentas();
+  }, [periodoVentas, mesVentas, anioVentas]);
+
+  useEffect(() => {
     const cargarEstadisticasTop = async () => {
       try {
         const [clientesRespuesta, productosRespuesta] = await Promise.all([
@@ -108,25 +176,42 @@ function DashboardDuena({ setRol }) {
   }, [periodoTop]);
 
   const resumen = dashboard?.resumen || resumenInicial;
-  const ventasSemanales = dashboard?.ventas_semanales || ventasSemanalesIniciales;
   const ultimasVentas = dashboard?.ultimas_ventas || [];
+  const aniosFiltro = useMemo(() => {
+    const anioBase = new Date().getFullYear();
 
-  const maxVentaSemanal = useMemo(() => {
+    return Array.from({ length: 7 }, (_, indice) => anioBase - indice);
+  }, []);
+  const datosGraficoVentas = resumenVentas?.datos || resumenVentasInicial.datos;
+  const hayVentasPeriodo = Number(resumenVentas?.cantidad_ventas_periodo || 0) > 0;
+
+  const maxVentaPeriodo = useMemo(() => {
     const maximo = Math.max(
-      ...ventasSemanales.map((venta) => Number(venta.total) || 0)
+      ...datosGraficoVentas.map((venta) => Number(venta.total_vendido) || 0)
     );
 
     return maximo > 0 ? maximo : 1;
-  }, [ventasSemanales]);
+  }, [datosGraficoVentas]);
 
-  const obtenerAlturaBarra = (total) => {
+  const obtenerAlturaBarraPeriodo = (total) => {
     const valor = Number(total) || 0;
 
     if (valor <= 0) {
-      return "6px";
+      return "8px";
     }
 
-    return `${Math.max((valor / maxVentaSemanal) * 205, 24)}px`;
+    return `${Math.max((valor / maxVentaPeriodo) * 170, 26)}px`;
+  };
+
+  const cambiarPeriodoVentas = (periodo) => {
+    setPeriodoVentas(periodo);
+  };
+
+  const volverPeriodoActual = () => {
+    const hoy = new Date();
+    setPeriodoVentas("semanal");
+    setMesVentas(hoy.getMonth() + 1);
+    setAnioVentas(hoy.getFullYear());
   };
 
   return (
@@ -290,22 +375,114 @@ function DashboardDuena({ setRol }) {
 
                 <div className="dashboard-row">
                   <div className="panel large-panel">
-                    <h3>Resumen de ventas</h3>
+                    <div className="ventas-resumen-header">
+                      <div>
+                        <h3>Resumen de ventas</h3>
+                        <p>{resumenVentas?.titulo || "Semana actual"}</p>
+                      </div>
 
-                    <div className="chart-legend">
-                      <span>Ventas semanales</span>
+                      <button
+                        className="periodo-actual-btn"
+                        type="button"
+                        onClick={volverPeriodoActual}
+                      >
+                        Actual
+                      </button>
                     </div>
 
+                    <div className="periodo-selector" aria-label="Periodo de ventas">
+                      {["semanal", "mensual", "anual"].map((periodo) => (
+                        <button
+                          key={periodo}
+                          type="button"
+                          className={
+                            periodoVentas === periodo
+                              ? "periodo-opcion active"
+                              : "periodo-opcion"
+                          }
+                          onClick={() => cambiarPeriodoVentas(periodo)}
+                        >
+                          {periodo === "semanal" && "Semanal"}
+                          {periodo === "mensual" && "Mensual"}
+                          {periodo === "anual" && "Anual"}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="periodo-filtros">
+                      {periodoVentas === "mensual" && (
+                        <select
+                          value={mesVentas}
+                          onChange={(e) => setMesVentas(Number(e.target.value))}
+                        >
+                          {mesesFiltro.map((mes) => (
+                            <option key={mes.valor} value={mes.valor}>
+                              {mes.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      {periodoVentas !== "semanal" && (
+                        <select
+                          value={anioVentas}
+                          onChange={(e) => setAnioVentas(Number(e.target.value))}
+                        >
+                          {aniosFiltro.map((anio) => (
+                            <option key={anio} value={anio}>
+                              {anio}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    <div className="ventas-periodo-metricas">
+                      <div>
+                        <span>Total vendido</span>
+                        <strong>{formatearMoneda(resumenVentas?.total_periodo)}</strong>
+                      </div>
+                      <div>
+                        <span>Cantidad de ventas</span>
+                        <strong>{resumenVentas?.cantidad_ventas_periodo || 0}</strong>
+                      </div>
+                    </div>
+
+                    {cargandoResumenVentas && (
+                      <p className="resumen-ventas-estado">
+                        Cargando resumen de ventas...
+                      </p>
+                    )}
+
+                    {errorResumenVentas && (
+                      <p className="resumen-ventas-error">{errorResumenVentas}</p>
+                    )}
+
+                    {!cargandoResumenVentas && !errorResumenVentas && !hayVentasPeriodo && (
+                      <p className="resumen-ventas-vacio">
+                        No hay ventas registradas para este periodo.
+                      </p>
+                    )}
+
                     <div className="fake-chart">
-                      <div className="chart-area">
-                        {ventasSemanales.map((venta) => (
-                          <div className="chart-column" key={venta.dia}>
+                      <div className="chart-area ventas-periodo-chart">
+                        {datosGraficoVentas.map((venta) => (
+                          <div className="chart-column" key={venta.etiqueta}>
+                            <strong className="bar-value">
+                              {formatearMoneda(venta.total_vendido)}
+                            </strong>
                             <div
                               className="bar"
-                              title={formatearMoneda(venta.total)}
-                              style={{ height: obtenerAlturaBarra(venta.total) }}
+                              title={`${formatearMoneda(
+                                venta.total_vendido
+                              )} - ${venta.cantidad_ventas} ventas`}
+                              style={{
+                                height: obtenerAlturaBarraPeriodo(
+                                  venta.total_vendido
+                                ),
+                              }}
                             ></div>
-                            <span>{venta.dia}</span>
+                            <span>{venta.etiqueta}</span>
                           </div>
                         ))}
                       </div>

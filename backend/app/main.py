@@ -41,6 +41,7 @@ app = FastAPI(
 )
 
 # Origenes usados por Vite en desarrollo local.
+# CORS queda concentrado aqui porque el frontend Vite consume esta API desde otro puerto.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -53,6 +54,7 @@ app.add_middleware(
 )
 
 ##llamada a routers
+# Cada router mantiene separado su modulo de negocio y main.py solo arma la aplicacion.
 app.include_router(auth_router)
 app.include_router(categoria_router)
 app.include_router(departamento_router)

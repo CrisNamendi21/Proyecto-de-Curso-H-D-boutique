@@ -24,6 +24,7 @@ function App() {
       }
 
       try {
+        // El token guardado se valida contra /auth/me antes de restaurar la sesion.
         const usuarioActual = await obtenerUsuarioActual();
         setSesion(usuarioActual);
       } catch {
@@ -70,6 +71,7 @@ function App() {
     return <DashboardDuena setRol={cerrarSesion} />;
   }
 
+  // Cualquier rol autenticado distinto de duena entra al panel limitado de colaborador.
   return <DashboardColaborador sesion={sesion} cerrarSesion={cerrarSesion} />;
 }
 

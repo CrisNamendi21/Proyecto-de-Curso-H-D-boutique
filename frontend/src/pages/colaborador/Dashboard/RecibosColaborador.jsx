@@ -30,6 +30,7 @@ function RecibosColaborador() {
       setError("");
 
       try {
+        // Este endpoint solo devuelve recibos del empleado autenticado.
         const respuesta = await obtenerRecibosColaborador(filtros);
         setRecibos(respuesta || []);
       } catch (errorCarga) {
@@ -70,6 +71,7 @@ function RecibosColaborador() {
 
   const exportarPdf = async (idRecibo) => {
     try {
+      // El PDF se pide por la ruta de colaborador para respetar el filtro de propiedad.
       await descargarPdfReciboColaborador(idRecibo);
     } catch (errorPdf) {
       setError(errorPdf.message || "No se pudo descargar el PDF.");

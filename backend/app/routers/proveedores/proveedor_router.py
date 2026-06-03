@@ -97,6 +97,7 @@ def listar_proveedores(db: Session = Depends(get_db)):
 
 @router.get("/{id_proveedor}/productos", response_model=list[ProductoProveedorCompraResponse])
 def listar_productos_por_proveedor(id_proveedor: int, db: Session = Depends(get_db)):
+    # Compras usa esta ruta para mostrar solo productos vinculados al proveedor seleccionado.
     proveedor = db.query(Proveedor).filter(
         Proveedor.ID_Proveedor == id_proveedor
     ).first()
@@ -204,6 +205,7 @@ def crear_proveedor_completo(
         )
 
     try:
+        # Proveedor y direccion se crean en una misma transaccion para mantener el catalogo consistente.
         nueva_direccion = DireccionProveedor(
             Departamento=proveedor.ID_Departamento,
             ID_Municipio=proveedor.ID_Municipio,

@@ -14,6 +14,7 @@ connection_url = URL.create(
     }
 )
 
+# La conexion a SQL Server se define una sola vez para que routers y modelos usen la misma configuracion.
 engine = create_engine(connection_url)
 
 SessionLocal = sessionmaker(

@@ -53,6 +53,7 @@ def _nombre_persona(nombres, apellidos, fallback="Sin nombre"):
 
 
 def _recibo_propio_query(db: Session, id_empleado: int):
+    # Los recibos de colaborador siempre se filtran por el empleado autenticado.
     return _query_recibos_base(db).filter(Venta.ID_Empleado == id_empleado)
 
 
@@ -61,6 +62,7 @@ def obtener_dashboard_colaborador(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioAutenticado = Depends(requerir_roles("colaborador"))
 ):
+    # Este panel resume solo ventas y recibos del colaborador actual.
     id_empleado = _id_empleado_colaborador(usuario_actual)
     hoy = date.today()
 

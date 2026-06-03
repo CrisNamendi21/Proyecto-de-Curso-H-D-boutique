@@ -71,6 +71,7 @@ function Productos() {
   };
 
   const calcularPrecioVenta = (costo) => {
+    // El precio de venta mostrado sigue el margen que tambien calcula el backend.
     if (costo === "") return "";
 
     const precio = Number(costo) * 1.15;
@@ -273,6 +274,7 @@ function Productos() {
   };
 
   const alternarEstadoProducto = async (producto) => {
+    // El backend valida si el producto puede activarse; aqui solo se solicita el cambio.
     const estadoActual = String(producto.Estado || "").trim().toUpperCase();
     const nuevoEstado = estadoActual === "ACTIVO" ? "INACTIVO" : "ACTIVO";
 

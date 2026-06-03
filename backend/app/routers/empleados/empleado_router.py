@@ -79,6 +79,7 @@ def _crear_o_actualizar_usuario_empleado(
     usuario: Optional[str],
     password: Optional[str] = None
 ):
+    # El usuario de sistema se sincroniza con el estado laboral del empleado.
     usuario_limpio = _validar_usuario_disponible(
         db,
         usuario,
@@ -340,6 +341,7 @@ def cambiar_estado_empleado(
         raise HTTPException(status_code=404, detail="Empleado no encontrado.")
 
     estado = _normalizar_estado(datos.Estado)
+    # FechaFin funciona como marca de inactividad del empleado y tambien bloquea su usuario.
     empleado.FechaFin = None if estado == "ACTIVO" else date.today()
     usuario_sistema = db.query(UsuarioSistema).filter(
         UsuarioSistema.ID_Empleado == empleado.ID_Empleado

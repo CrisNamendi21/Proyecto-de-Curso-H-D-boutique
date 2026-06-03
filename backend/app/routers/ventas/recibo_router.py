@@ -121,6 +121,7 @@ def _productos_recibo(db: Session, id_venta: int):
 
 
 def _query_recibos_base(db: Session):
+    # Esta consulta base mantiene consistente el listado, detalle y PDF de recibos.
     return db.query(Recibo, Venta, Cliente, Empleado).join(
         Venta,
         Recibo.ID_Venta == Venta.ID_Venta
@@ -203,6 +204,7 @@ def _recortar_pdf(texto, largo):
 
 
 def _generar_pdf_recibo(detalle):
+    # El PDF se arma sin librerias externas para mantener el recibo descargable desde el backend.
     contenido = []
     rosa = "0.839 0.169 0.459"
     rosa_claro = "1.000 0.941 0.965"

@@ -1,5 +1,6 @@
 const API_URL = "http://127.0.0.1:8000";
 
+// Todas las peticiones pasan por aqui para mantener token, errores y rutas en un solo lugar.
 export function obtenerToken() {
   return localStorage.getItem("hdb_token");
 }
@@ -33,6 +34,7 @@ async function procesarRespuesta(respuesta, mensajeError) {
   if (!respuesta.ok) {
     const detalle = datos?.detail;
 
+    // Si el backend rechaza la sesion, se limpia el token local para volver al login.
     if (respuesta.status === 401 || respuesta.status === 403) {
       eliminarToken();
     }
@@ -333,6 +335,30 @@ export function registrarVentaCompleta(datos) {
 
 export function obtenerDashboard() {
   return obtenerDatos("/dashboard/");
+}
+
+export function obtenerResumenVentasDashboard(filtros = {}) {
+  const params = new URLSearchParams();
+
+  params.append("periodo", filtros.periodo || "semanal");
+
+  if (filtros.mes) {
+    params.append("mes", filtros.mes);
+  }
+
+  if (filtros.anio) {
+    params.append("anio", filtros.anio);
+  }
+
+  if (filtros.fechaInicio) {
+    params.append("fecha_inicio", filtros.fechaInicio);
+  }
+
+  if (filtros.fechaFin) {
+    params.append("fecha_fin", filtros.fechaFin);
+  }
+
+  return obtenerDatos(`/dashboard/resumen-ventas?${params.toString()}`);
 }
 
 export function obtenerClientesTop(periodo = "general") {

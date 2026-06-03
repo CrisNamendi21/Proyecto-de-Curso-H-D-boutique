@@ -37,6 +37,7 @@ def _normalizar_estado_producto(estado: str):
 
 
 def producto_con_precio(producto: Producto, db: Session):
+    # El frontend necesita el producto junto con categoria, talla, proveedor y precio calculado.
     categoria = db.query(Categoria).filter(
         Categoria.ID_Categoria == producto.ID_Categoria
     ).first()
@@ -190,6 +191,7 @@ def crear_producto_completo(producto: ProductoCompletoCreate, db: Session = Depe
     try:
         estado = _normalizar_estado_producto(producto.Estado)
 
+        # Un producto sin unidades queda inactivo para que no aparezca como vendible.
         if producto.Stock == 0:
             estado = "INACTIVO"
 
@@ -236,6 +238,7 @@ def cambiar_estado_producto(
 
     estado = _normalizar_estado_producto(datos.Estado)
 
+    # No se permite reactivar productos que todavia no tienen inventario disponible.
     if estado == "ACTIVO" and producto.Stock <= 0:
         raise HTTPException(
             status_code=400,

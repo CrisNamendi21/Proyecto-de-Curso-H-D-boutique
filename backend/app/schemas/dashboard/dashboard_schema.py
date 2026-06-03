@@ -41,3 +41,22 @@ class ProductoTopDashboard(BaseModel):
     producto: str
     cantidad: int
     total: float
+
+
+class ResumenVentaPeriodoItem(BaseModel):
+    etiqueta: str
+    total_vendido: float
+    cantidad_ventas: int
+
+
+class ResumenVentasPeriodoResponse(BaseModel):
+    periodo: str
+    titulo: str
+    etiquetas: list[str]
+    datos: list[ResumenVentaPeriodoItem]
+    total_periodo: float
+    cantidad_ventas_periodo: int
+    fecha_inicio: str
+    fecha_fin: str
+    mes: int | None = None
+    anio: int | None = None

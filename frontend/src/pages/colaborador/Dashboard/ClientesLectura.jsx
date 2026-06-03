@@ -14,6 +14,7 @@ function ClientesLectura() {
       setError("");
 
       try {
+        // La busqueda se resuelve en backend para consultar clientes fuera de lo visible.
         const respuesta = await obtenerClientesColaborador({ busqueda });
         setClientes(respuesta || []);
       } catch (errorCarga) {

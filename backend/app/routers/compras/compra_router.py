@@ -245,6 +245,7 @@ def registrar_compra_completa(
     productos_agrupados = {}
 
     for item in compra.productos:
+        # Agrupar evita duplicar lineas si el mismo producto del proveedor viene repetido.
         productos_agrupados[item.ID_ProductoProveedor] = (
             productos_agrupados.get(item.ID_ProductoProveedor, 0) + item.Cantidad
         )
@@ -292,6 +293,7 @@ def registrar_compra_completa(
     total_compra = total_productos + costo_envio
 
     try:
+        # Compra y detalles se guardan juntos; si falla algo, no queda inventario a medias.
         nueva_compra = Compra(
             ID_Proveedor=compra.ID_Proveedor,
             ID_Empleado=compra.ID_Empleado,
@@ -363,6 +365,7 @@ def marcar_compra_recibida(id_compra: int, db: Session = Depends(get_db)):
         compra.FechaRevision = date.today()
 
         for detalle, _, producto in detalles:
+            # El stock aumenta solo cuando la orden pasa a recibida.
             producto.Stock = producto.Stock + detalle.Cantidad
 
         db.commit()

@@ -99,6 +99,7 @@ def buscar_clientes(
     busqueda: str,
     db: Session = Depends(get_db),
 ):
+    # Se usa en Nueva Venta para reutilizar clientes existentes antes de crear otro registro.
     termino_limpio = busqueda.strip()
 
     if len(termino_limpio) < 2:
@@ -245,6 +246,7 @@ def crear_cliente_completo(
         )
 
     try:
+        # Cliente y direccion se guardan juntos para no dejar personas sin ubicacion asociada.
         nueva_direccion = DireccionCliente(
             ID_Departamento=cliente.ID_Departamento,
             ID_Municipio=cliente.ID_Municipio,

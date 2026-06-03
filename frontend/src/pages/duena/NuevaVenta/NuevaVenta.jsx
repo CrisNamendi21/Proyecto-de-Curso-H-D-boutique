@@ -286,6 +286,7 @@ function NuevaVenta({
   };
 
   const cantidadesReservadas = useMemo(() => {
+    // El stock visible descuenta lo que ya esta en la venta antes de confirmar en backend.
     return productosVenta.reduce((reservas, producto) => {
       reservas[producto.ID_Producto] =
         (reservas[producto.ID_Producto] || 0) + producto.Cantidad;
@@ -469,6 +470,7 @@ function NuevaVenta({
   const montoTransferenciaNumerico = Number(montoTransferencia) || 0;
 
   const construirPagos = () => {
+    // El backend espera una lista de pagos, incluso cuando solo hay un metodo.
     if (esPagoMixto) {
       const pagos = [];
 
@@ -590,6 +592,7 @@ function NuevaVenta({
   };
 
   const construirPayload = () => {
+    // Si el cliente sugerido ya sirve para la venta, se envia su ID para evitar duplicados.
     const payload = {
       ID_Empleado: idEmpleado,
       CostoDelivery:

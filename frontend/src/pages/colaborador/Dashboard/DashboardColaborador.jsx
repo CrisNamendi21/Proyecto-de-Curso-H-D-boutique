@@ -37,6 +37,7 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
       setErrorDashboard("");
 
       try {
+        // El backend limita este resumen al empleado asociado con la sesion del colaborador.
         const respuesta = await obtenerDashboardColaborador();
         setDashboard({
           resumen: respuesta?.resumen || resumenInicial,

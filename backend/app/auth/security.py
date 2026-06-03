@@ -39,6 +39,7 @@ def _firmar_jwt(header: str, payload: str) -> str:
 
 
 def generar_hash_password(password: str) -> str:
+    # Nunca se guarda la contrasena plana; solo se compara contra este hash.
     hash_generado = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),
@@ -55,6 +56,7 @@ def verificar_password_hash(password: str, password_hash: str) -> bool:
 
 
 def crear_token_acceso(datos: dict) -> str:
+    # El token transporta la identidad de la sesion, pero no reemplaza la validacion en base.
     expiracion = datetime.now(timezone.utc) + timedelta(
         minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
     )
@@ -147,6 +149,7 @@ def obtener_usuario_actual(
             detail="Token de autenticacion invalido."
         )
 
+    # Se vuelve a consultar la base para bloquear tokens viejos de usuarios o empleados desactivados.
     data = db.query(UsuarioSistema, Empleado).join(
         Empleado,
         UsuarioSistema.ID_Empleado == Empleado.ID_Empleado

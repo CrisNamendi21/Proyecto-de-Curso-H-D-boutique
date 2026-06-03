@@ -77,6 +77,7 @@ function Ventas() {
 
   useEffect(() => {
     const temporizador = setTimeout(() => {
+      // El debounce evita pedir al backend en cada tecla de los filtros.
       cargarVentas(filtros);
     }, 300);
 

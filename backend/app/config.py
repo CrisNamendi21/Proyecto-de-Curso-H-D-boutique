@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # Las credenciales y datos de entorno viven en .env para no quemarlos en el codigo.
     DB_SERVER: str
     DB_NAME: str
     DB_DRIVER: str

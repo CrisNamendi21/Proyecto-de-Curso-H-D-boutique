@@ -42,6 +42,7 @@ def _normalizar_texto(valor):
 
 
 def _buscar_cliente_existente(db: Session, datos_cliente):
+    # Evita duplicar clientes cuando la venta trae telefono o nombre completo ya registrado.
     nombres = _normalizar_texto(datos_cliente.Nombres)
     apellidos = _normalizar_texto(datos_cliente.Apellidos)
     telefono = str(datos_cliente.NumeroTelefono or "").strip()
@@ -515,6 +516,7 @@ def registrar_venta_completa(
 ):
 
     try:
+        # La venta completa se confirma como una sola operacion: venta, detalles, pagos, stock y recibo.
         if venta_data.ID_Cliente is not None:
             cliente = db.query(Cliente).filter(
                 Cliente.ID_Cliente == venta_data.ID_Cliente
@@ -594,6 +596,7 @@ def registrar_venta_completa(
                     detail=f"El producto con ID {item.ID_Producto} no está activo para venta."
                 )
 
+            # El backend vuelve a validar stock y estado aunque el frontend ya haya filtrado productos.
             if producto.Stock < item.Cantidad:
                 raise HTTPException(
                     status_code=400,
@@ -632,6 +635,7 @@ def registrar_venta_completa(
                     detail=f"Tipo de pago con ID {pago.Tipo_pago} no encontrado"
                 )
 
+        # Los pagos deben cerrar contra el total calculado en backend, no contra un total enviado por cliente.
         if total_pagado != total_venta:
             raise HTTPException(
                 status_code=400,

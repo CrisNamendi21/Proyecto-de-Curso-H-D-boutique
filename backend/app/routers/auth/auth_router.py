@@ -28,6 +28,7 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
     usuario = datos.Usuario.strip()
     password = datos.Password
 
+    # El login cruza Usuario y Empleado para impedir acceso a cuentas sin empleado vigente.
     data = db.query(UsuarioSistema, Empleado).join(
         Empleado,
         UsuarioSistema.ID_Empleado == Empleado.ID_Empleado
@@ -79,4 +80,5 @@ def iniciar_sesion(datos: LoginRequest, db: Session = Depends(get_db)):
 def obtener_perfil_actual(
     usuario_actual: UsuarioAutenticado = Depends(obtener_usuario_actual)
 ):
+    # /me reutiliza la validacion central para confirmar que el token sigue siendo aceptable.
     return usuario_actual
