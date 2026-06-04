@@ -167,7 +167,7 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
                   <div className="card-line"></div>
                 </div>
 
-                <div className="dashboard-card">
+                <div className="dashboard-card alerta-stock">
                   <h3>Alertas de stock</h3>
                   <div className="card-main-value">
                     {dashboard.productos_bajo_stock.length}

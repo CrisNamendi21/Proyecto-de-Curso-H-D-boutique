@@ -30,7 +30,12 @@
 
 .colaborador-theme .brand p,
 .colaborador-theme .dashboard-card p {
-  color: var(--colab-suave);
+  color: #666;
+}
+
+.colaborador-theme .dashboard-card.alerta-stock p {
+  color: #5f347d;
+  font-weight: 700;
 }
 
 .colaborador-theme .menu-item {
@@ -159,6 +164,10 @@
 .colaborador-theme .colaborador-tabla th {
   color: var(--colab-suave);
   font-size: 13px;
+}
+
+.colaborador-theme .colaborador-tabla tbody tr:hover td {
+  background: #fcfcfc;
 }
 
 .colaborador-theme .productos-header h2,

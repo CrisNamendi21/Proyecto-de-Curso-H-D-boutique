@@ -356,7 +356,7 @@ function DashboardDuena({ setRol }) {
                     <div className="card-line"></div>
                   </div>
 
-                  <div className="dashboard-card">
+                  <div className="dashboard-card alerta-stock">
                     <h3>Stock bajo</h3>
                     <div className="card-main-value">{resumen.stock_bajo}</div>
                     <p>Productos con stock &lt;= 5</p>
@@ -468,9 +468,13 @@ function DashboardDuena({ setRol }) {
                       <div className="chart-area ventas-periodo-chart">
                         {datosGraficoVentas.map((venta) => (
                           <div className="chart-column" key={venta.etiqueta}>
-                            <strong className="bar-value">
-                              {formatearMoneda(venta.total_vendido)}
-                            </strong>
+                            {Number(venta.total_vendido) > 0 ? (
+                              <strong className="bar-value">
+                                {formatearMoneda(venta.total_vendido)}
+                              </strong>
+                            ) : (
+                              <span className="bar-value bar-value-empty" />
+                            )}
                             <div
                               className="bar"
                               title={`${formatearMoneda(

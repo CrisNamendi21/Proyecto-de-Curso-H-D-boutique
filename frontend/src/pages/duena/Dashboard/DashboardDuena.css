@@ -54,7 +54,7 @@
   width: 100%;
   border: none;
   background: transparent;
-  padding: 16px 20px;
+  padding: 18px 20px;
   text-align: left;
   color: #444;
   font-size: 15px;
@@ -178,8 +178,13 @@
 
 .dashboard-card p {
   margin: 0;
-  color: #e76b9d;
+  color: #666;
   font-size: 14px;
+}
+
+.dashboard-card.alerta-stock p {
+  color: #8f254f;
+  font-weight: 700;
 }
 
 .card-line {
@@ -405,6 +410,10 @@
   overflow-wrap: anywhere;
 }
 
+.bar-value-empty {
+  visibility: hidden;
+}
+
 /* TABLA */
 
 .sales-table {
@@ -426,6 +435,10 @@
 
 .sales-table td {
   color: #30484f;
+}
+
+.sales-table tbody tr:hover td {
+  background: #fcfcfc;
 }
 
 .dashboard-estado,
