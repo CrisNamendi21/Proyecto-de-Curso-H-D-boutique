@@ -368,7 +368,74 @@
 
 .grupo-form input::placeholder,
 .grupo-form textarea::placeholder {
-  color: #9b8a92;
+  color: #76606b;
+}
+
+.password-input-empleado {
+  position: relative;
+}
+
+.password-input-empleado input {
+  padding-right: 44px;
+}
+
+.password-toggle-empleado {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 0.2s ease;
+}
+
+.password-toggle-empleado:hover,
+.password-toggle-empleado:focus-visible {
+  background: #fff0f6;
+}
+
+.password-toggle-empleado:focus-visible {
+  outline: 2px solid rgba(255, 63, 127, 0.25);
+  outline-offset: 2px;
+}
+
+.password-toggle-empleado span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 17px;
+  height: 11px;
+  border: 2px solid #6b2c45;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.password-toggle-empleado span::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #6b2c45;
+  transform: translate(-50%, -50%);
+}
+
+.password-toggle-empleado.visible span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: 25px;
+  height: 2px;
+  border-radius: 999px;
+  background: #6b2c45;
+  transform: rotate(-35deg);
 }
 
 /* Botones del modal */

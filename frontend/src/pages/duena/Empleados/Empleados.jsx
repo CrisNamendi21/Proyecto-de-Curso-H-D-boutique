@@ -53,6 +53,7 @@ function Empleados() {
   const [cargandoMunicipios, setCargandoMunicipios] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [empleadoProcesando, setEmpleadoProcesando] = useState(null);
+  const [mostrarPasswordEmpleado, setMostrarPasswordEmpleado] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
@@ -537,14 +538,37 @@ function Empleados() {
 
               <div className="grupo-form">
                 <label>Contrasena de acceso</label>
-                <input
-                  type="password"
-                  name="password"
-                  value={nuevoEmpleado.password}
-                  onChange={manejarCambio}
-                  placeholder="Contrasena temporal"
-                  autoComplete="new-password"
-                />
+                <div className="password-input-empleado">
+                  <input
+                    type={mostrarPasswordEmpleado ? "text" : "password"}
+                    name="password"
+                    value={nuevoEmpleado.password}
+                    onChange={manejarCambio}
+                    placeholder="Contrasena temporal"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className={`password-toggle-empleado ${
+                      mostrarPasswordEmpleado ? "visible" : ""
+                    }`}
+                    onClick={() =>
+                      setMostrarPasswordEmpleado(!mostrarPasswordEmpleado)
+                    }
+                    aria-label={
+                      mostrarPasswordEmpleado
+                        ? "Ocultar contrasena"
+                        : "Mostrar contrasena"
+                    }
+                    title={
+                      mostrarPasswordEmpleado
+                        ? "Ocultar contrasena"
+                        : "Mostrar contrasena"
+                    }
+                  >
+                    <span aria-hidden="true" />
+                  </button>
+                </div>
               </div>
 
               <div className="grupo-form">

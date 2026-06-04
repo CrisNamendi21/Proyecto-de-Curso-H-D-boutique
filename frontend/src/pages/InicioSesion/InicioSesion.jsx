@@ -5,6 +5,7 @@ import "./InicioSesion.css";
 function InicioSesion({ onLoginCorrecto }) {
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(false);
 
@@ -50,14 +51,31 @@ function InicioSesion({ onLoginCorrecto }) {
 
           <div className="login-field">
             <label>Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contraseña"
-              autoComplete="current-password"
-              required
-            />
+            <div className="password-input">
+              <input
+                type={mostrarPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Contraseña"
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                className={`password-toggle ${
+                  mostrarPassword ? "visible" : ""
+                }`}
+                onClick={() => setMostrarPassword(!mostrarPassword)}
+                aria-label={
+                  mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
+                title={
+                  mostrarPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
+              >
+                <span aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           {mensaje && <p className="login-error">{mensaje}</p>}
