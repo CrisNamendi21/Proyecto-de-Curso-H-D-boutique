@@ -180,10 +180,10 @@ function Productos() {
       ...filtrosActuales,
       [name]: value,
     }));
-  };
-
-  const aplicarFiltros = () => {
-    setFiltrosAplicados(filtros);
+    setFiltrosAplicados((filtrosActuales) => ({
+      ...filtrosActuales,
+      [name]: value,
+    }));
   };
 
   const limpiarFiltros = () => {
@@ -410,10 +410,6 @@ function Productos() {
         </div>
 
         <div className="botones-filtro">
-          <button type="button" onClick={aplicarFiltros}>
-            Filtrar
-          </button>
-
           <button type="button" className="btn-limpiar" onClick={limpiarFiltros}>
             Limpiar
           </button>

@@ -145,7 +145,9 @@ function RecibosColaborador() {
                   <td>{recibo.cliente}</td>
                   <td>{recibo.medio_pago}</td>
                   <td>{formatearDinero(recibo.total)}</td>
-                  <td>{recibo.estado}</td>
+                  <td>
+                    <span className="estado emitido">{recibo.estado}</span>
+                  </td>
                   <td>
                     <button
                       type="button"

@@ -74,6 +74,10 @@ body {
   box-sizing: border-box;
 }
 
+.recibo-card:hover {
+  box-shadow: 0 10px 28px rgba(248, 187, 215, 0.2);
+}
+
 .recibo-card span {
   display: block;
   color: #6e5965;
@@ -88,7 +92,7 @@ body {
   font-weight: 900;
 }
 
-.card-icono {
+.recibos-page .card-icono {
   width: 48px;
   height: 48px;
   border: 1px solid #f8bbd7;
@@ -98,15 +102,40 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 23px;
+  font-size: 0;
   font-weight: 900;
+}
+
+.recibos-page .card-icono::before {
+  font-size: 20px;
+}
+
+.recibos-page .recibo-card:nth-child(1) .card-icono::before {
+  content: "R";
+}
+
+.recibos-page .recibo-card:nth-child(2) .card-icono {
+  background: #f6f0ff;
+  border-color: #dcc8f5;
+  color: #6e4ca8;
+}
+
+.recibos-page .recibo-card:nth-child(2) .card-icono::before {
+  content: "#";
+}
+
+.recibos-page .recibo-card:nth-child(3) .card-icono {
+  background: #eef9f0;
+  border-color: #c8e8cf;
+  color: #2f7f49;
+  font-size: 17px;
 }
 
 .recibos-filtros {
   background: #ffffff;
   border: 1px solid #f3d4e2;
   border-radius: 18px;
-  padding: 14px;
+  padding: 16px;
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr auto;
   gap: 14px;
@@ -127,7 +156,7 @@ body {
 .filtro-grupo input,
 .filtro-grupo select {
   width: 100%;
-  height: 40px;
+  height: 42px;
   border: 1px solid #f1c8da;
   background: #fffafd;
   border-radius: 12px;
@@ -151,7 +180,7 @@ body {
 }
 
 .acciones-filtros button {
-  height: 36px;
+  height: 42px;
   border: 1px solid #f8bbd7;
   background: #fff6fb;
   color: #c73576;
@@ -216,7 +245,7 @@ body {
 
 .tabla-recibos th {
   text-align: left;
-  color: #8c6d7b;
+  color: #6b5a63;
   font-size: 13px;
   padding: 11px 9px;
   border-bottom: 1px solid #f4d9e5;
@@ -231,6 +260,32 @@ body {
   font-size: 13.5px;
   padding: 11px 9px;
   border-bottom: 1px solid #f8e7ef;
+}
+
+.tabla-recibos tbody tr,
+.recibo-productos tbody tr {
+  transition: background 0.18s ease;
+}
+
+.tabla-recibos tbody tr:hover,
+.recibo-productos tbody tr:hover {
+  background: #fffafd;
+}
+
+.tabla-recibos th:nth-child(6),
+.tabla-recibos td:nth-child(6),
+.recibo-productos th:nth-child(3),
+.recibo-productos td:nth-child(3),
+.recibo-productos th:nth-child(4),
+.recibo-productos td:nth-child(4),
+.recibo-productos th:nth-child(5),
+.recibo-productos td:nth-child(5) {
+  text-align: right;
+}
+
+.tabla-recibos th:last-child,
+.tabla-recibos td:last-child {
+  text-align: center;
 }
 
 .estado {
@@ -276,7 +331,7 @@ body {
 .tabla-footer {
   flex-shrink: 0;
   padding-top: 10px;
-  color: #8c6d7b;
+  color: #6b5a63;
   font-size: 13px;
   font-weight: 700;
 }
@@ -293,11 +348,12 @@ body {
 }
 
 .recibo-miniatura {
-  background: #fffafd;
+  background: linear-gradient(180deg, #fffafd, #ffffff);
   border: 1px solid #f3d4e2;
   border-radius: 16px;
-  padding: 16px;
+  padding: 18px;
   box-sizing: border-box;
+  box-shadow: inset 0 0 0 1px rgba(255, 214, 231, 0.45);
 }
 
 .recibo-miniatura h3 {
@@ -309,7 +365,7 @@ body {
 
 .recibo-miniatura p {
   margin: 4px 0 14px;
-  color: #8c6d7b;
+  color: #6b5a63;
   font-size: 13px;
 }
 
@@ -323,7 +379,7 @@ body {
 .lineas-miniatura span {
   display: block;
   height: 8px;
-  background: #ffd6e7;
+  background: #f5c6da;
   border-radius: 20px;
 }
 
@@ -337,7 +393,7 @@ body {
 
 .mini-total {
   border-top: 1px solid #f3d4e2;
-  padding-top: 10px;
+  padding-top: 12px;
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -351,7 +407,8 @@ body {
 
 .mini-total strong {
   color: #2f2933;
-  font-size: 13px;
+  font-size: 14px;
+  text-align: right;
 }
 
 .datos-recibo,
@@ -487,6 +544,29 @@ body {
   .acciones-recibo {
     flex-direction: column;
   }
+
+  .acciones-recibo button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .recibos-filtros {
+    gap: 12px;
+  }
+
+  .acciones-filtros button {
+    width: 100%;
+  }
+
+  .listado-recibos {
+    height: auto;
+    max-height: 440px;
+  }
+
+  .vista-previa {
+    min-height: 0;
+  }
 }
 
 .modal-recibo-fondo {
@@ -577,7 +657,7 @@ body {
 
 .recibo-numero span {
   display: block;
-  color: #8c6d7b;
+  color: #6b5a63;
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 6px;
@@ -604,7 +684,7 @@ body {
 
 .recibo-completo-info span {
   display: block;
-  color: #8c6d7b;
+  color: #6b5a63;
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 5px;
@@ -635,7 +715,7 @@ body {
 
 .recibo-productos th {
   text-align: left;
-  color: #8c6d7b;
+  color: #6b5a63;
   font-size: 13px;
   padding: 12px 10px;
   border-bottom: 1px solid #f4d9e5;
@@ -704,7 +784,7 @@ body {
 .recibo-pie span {
   display: block;
   margin-top: 5px;
-  color: #8c6d7b;
+  color: #6b5a63;
   font-size: 13px;
 }
 
@@ -757,5 +837,23 @@ body {
   .btn-modal-secundario,
   .btn-modal-principal {
     width: 100%;
+  }
+
+  .modal-recibo-fondo {
+    align-items: flex-start;
+    padding: 14px;
+    overflow-y: auto;
+  }
+
+  .modal-recibo {
+    max-height: none;
+    border-radius: 18px;
+  }
+
+  .modal-recibo-header,
+  .recibo-completo,
+  .modal-recibo-acciones {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }
