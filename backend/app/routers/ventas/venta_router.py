@@ -41,6 +41,21 @@ def _normalizar_texto(valor):
     return str(valor or "").strip().lower()
 
 
+def _telefono_delivery_valido(telefono):
+    telefono_limpio = str(telefono or "").strip()
+
+    return (
+        telefono_limpio.isdigit()
+        and len(telefono_limpio) == 8
+        and int(telefono_limpio) > 70000000
+        and int(telefono_limpio) < 90000000
+    )
+
+
+def _es_tipo_pago(tipo_pago: TipoPago, nombre: str):
+    return nombre in _normalizar_texto(tipo_pago.NombrePago)
+
+
 def _buscar_cliente_existente(db: Session, datos_cliente):
     # Evita duplicar clientes cuando la venta trae telefono o nombre completo ya registrado.
     nombres = _normalizar_texto(datos_cliente.Nombres)
@@ -140,6 +155,12 @@ def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
             raise HTTPException(
                 status_code=400,
                 detail="Para ventas con delivery debes enviar el número de teléfono del cliente."
+            )
+
+        if not _telefono_delivery_valido(datos_cliente.NumeroTelefono):
+            raise HTTPException(
+                status_code=400,
+                detail="El telefono debe tener 8 digitos y estar entre 70000001 y 89999999."
             )
 
         if not _texto_presente(datos_cliente.Direccion):
@@ -549,6 +570,12 @@ def registrar_venta_completa(
                     detail="Para ventas con delivery, el cliente debe tener nombres, apellidos y número de teléfono."
                 )
 
+            if not _telefono_delivery_valido(cliente.NumeroTelefono):
+                raise HTTPException(
+                    status_code=400,
+                    detail="El telefono debe tener 8 digitos y estar entre 70000001 y 89999999."
+                )
+
             direccion_cliente = db.query(DireccionCliente).filter(
                 DireccionCliente.ID_Direccion == cliente.ID_Direccion
             ).first()
@@ -624,7 +651,15 @@ def registrar_venta_completa(
             pago.Monto for pago in venta_data.pagos
         )
 
+        tipos_pago_validados = []
+
         for pago in venta_data.pagos:
+            if pago.Monto < 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Los montos de pago no pueden ser negativos."
+                )
+
             tipo_pago = db.query(TipoPago).filter(
                 TipoPago.Tipo_pago == pago.Tipo_pago
             ).first()
@@ -633,6 +668,30 @@ def registrar_venta_completa(
                 raise HTTPException(
                     status_code=404,
                     detail=f"Tipo de pago con ID {pago.Tipo_pago} no encontrado"
+                )
+
+            tipos_pago_validados.append(tipo_pago)
+
+        if total_pagado <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Debes enviar al menos un pago con monto mayor que cero."
+            )
+
+        if len(venta_data.pagos) > 1:
+            tiene_efectivo = any(
+                _es_tipo_pago(tipo_pago, "efectivo")
+                for tipo_pago in tipos_pago_validados
+            )
+            tiene_transferencia = any(
+                _es_tipo_pago(tipo_pago, "transferencia")
+                for tipo_pago in tipos_pago_validados
+            )
+
+            if len(venta_data.pagos) != 2 or not tiene_efectivo or not tiene_transferencia:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El pago mixto debe incluir efectivo y transferencia."
                 )
 
         # Los pagos deben cerrar contra el total calculado en backend, no contra un total enviado por cliente.

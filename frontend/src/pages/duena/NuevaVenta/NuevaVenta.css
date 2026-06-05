@@ -82,6 +82,10 @@
   font-weight: 700;
 }
 
+.error-campo {
+  color: #b02663;
+}
+
 .sugerencias-clientes {
   position: absolute;
   left: 16px;

@@ -40,7 +40,7 @@ function Compras() {
   const [resumen, setResumen] = useState(resumenInicial);
   const [proveedores, setProveedores] = useState([]);
   const [productosProveedor, setProductosProveedor] = useState([]);
-  const [cargando, setCargando] = useState(true);
+  const [, setCargando] = useState(true);
   const [cargandoProductos, setCargandoProductos] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [compraProcesando, setCompraProcesando] = useState(null);
@@ -116,15 +116,13 @@ function Compras() {
 
   const manejarFiltro = (e) => {
     const { name, value } = e.target;
-
-    setFiltros((filtrosActuales) => ({
-      ...filtrosActuales,
+    const filtrosActualizados = {
+      ...filtros,
       [name]: value,
-    }));
-  };
+    };
 
-  const filtrarCompras = () => {
-    cargarCompras(filtros);
+    setFiltros(filtrosActualizados);
+    cargarCompras(filtrosActualizados);
   };
 
   const limpiarFiltros = () => {
@@ -363,7 +361,6 @@ function Compras() {
         <p>Controla las compras realizadas a proveedores.</p>
       </div>
 
-      {cargando && <p className="estado-compras-mensaje">Cargando compras...</p>}
       {error && <p className="error-compras">{error}</p>}
       {mensaje && <p className="exito-compras">{mensaje}</p>}
 
@@ -443,10 +440,6 @@ function Compras() {
             <option value="Pendiente">Pendiente</option>
           </select>
         </div>
-
-        <button className="btn-filtrar" onClick={filtrarCompras}>
-          Filtrar
-        </button>
 
         <button className="btn-limpiar-compra" onClick={limpiarFiltros}>
           Limpiar

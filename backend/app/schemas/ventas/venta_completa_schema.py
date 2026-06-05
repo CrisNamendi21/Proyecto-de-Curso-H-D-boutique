@@ -12,7 +12,7 @@ class ProductoVentaCompleta(BaseModel):
 
 class PagoVentaCompleta(BaseModel):
     Tipo_pago: int
-    Monto: Decimal = Field(gt=0)
+    Monto: Decimal = Field(ge=0)
     Referencia: Optional[str] = None
 
 

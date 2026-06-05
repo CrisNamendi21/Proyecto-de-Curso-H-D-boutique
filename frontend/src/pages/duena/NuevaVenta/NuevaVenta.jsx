@@ -47,6 +47,7 @@ function NuevaVenta({
   const [referenciaPago, setReferenciaPago] = useState("");
   const [montoEfectivo, setMontoEfectivo] = useState("");
   const [montoTransferencia, setMontoTransferencia] = useState("");
+  const [ultimoCampoMixtoEditado, setUltimoCampoMixtoEditado] = useState(null);
   const [costoDelivery, setCostoDelivery] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [productosVenta, setProductosVenta] = useState([]);
@@ -67,6 +68,31 @@ function NuevaVenta({
   };
 
   const convertirACentavos = (valor) => Math.round((Number(valor) || 0) * 100);
+  const formatearMontoPago = (centavos) => (centavos / 100).toFixed(2);
+
+  const limpiarTelefono = (valor) => valor.replace(/\D/g, "").slice(0, 8);
+
+  const telefonoDeliveryEsValido = (telefono) => {
+    const telefonoLimpio = String(telefono || "").trim();
+
+    return (
+      /^\d{8}$/.test(telefonoLimpio) &&
+      Number(telefonoLimpio) > 70000000 &&
+      Number(telefonoLimpio) < 90000000
+    );
+  };
+
+  const normalizarMontoEntrada = (valor) => {
+    const valorNormalizado = valor.replace(",", ".").replace(/[^\d.]/g, "");
+    const [entero = "", ...decimales] = valorNormalizado.split(".");
+    const decimal = decimales.join("").slice(0, 2);
+
+    if (valorNormalizado.includes(".")) {
+      return `${entero}.${decimal}`;
+    }
+
+    return entero;
+  };
 
   const obtenerTipoPagoPorNombre = (nombre) => {
     return tiposPago.find((tipoPago) =>
@@ -197,7 +223,32 @@ function NuevaVenta({
     setReferenciaPago("");
     setMontoEfectivo("");
     setMontoTransferencia("");
+    setUltimoCampoMixtoEditado(null);
     setMensaje("");
+  };
+
+  const manejarTelefonoCliente = (e) => {
+    setTelefonoCliente(limpiarTelefono(e.target.value));
+    setClienteSeleccionado(null);
+  };
+
+  const actualizarPagoMixto = (campoEditado, valor) => {
+    const valorLimpio = normalizarMontoEntrada(valor);
+    const centavosTotal = convertirACentavos(total);
+    const centavosIngresados = convertirACentavos(valorLimpio);
+    const centavosRestantes = Math.max(centavosTotal - centavosIngresados, 0);
+
+    setUltimoCampoMixtoEditado(campoEditado);
+    setMensaje("");
+
+    if (campoEditado === "efectivo") {
+      setMontoEfectivo(valorLimpio);
+      setMontoTransferencia(formatearMontoPago(centavosRestantes));
+      return;
+    }
+
+    setMontoTransferencia(valorLimpio);
+    setMontoEfectivo(formatearMontoPago(centavosRestantes));
   };
 
   const manejarDepartamentoCliente = (e) => {
@@ -444,6 +495,7 @@ function NuevaVenta({
     setReferenciaPago("");
     setMontoEfectivo("");
     setMontoTransferencia("");
+    setUltimoCampoMixtoEditado(null);
     setCostoDelivery("");
     setBusqueda("");
     setProductosVenta([]);
@@ -468,29 +520,89 @@ function NuevaVenta({
     metodoPago === String(tipoPagoTransferencia?.Tipo_pago);
   const montoEfectivoNumerico = Number(montoEfectivo) || 0;
   const montoTransferenciaNumerico = Number(montoTransferencia) || 0;
+  const errorTelefonoDelivery =
+    tipoCliente === "delivery" &&
+    telefonoCliente &&
+    !telefonoDeliveryEsValido(telefonoCliente)
+      ? ""
+      : "";
+  const errorPagoMixto = (() => {
+    if (!esPagoMixto) return "";
+
+    if (montoEfectivoNumerico < 0 || montoTransferenciaNumerico < 0) {
+      return "Los montos del pago mixto no pueden ser negativos.";
+    }
+
+    if (montoEfectivoNumerico > total || montoTransferenciaNumerico > total) {
+      return "El monto ingresado no puede ser mayor que el total de la venta.";
+    }
+
+    if (
+      total > 0 &&
+      montoEfectivo !== "" &&
+      montoTransferencia !== "" &&
+      montoEfectivoNumerico <= 0 &&
+      montoTransferenciaNumerico <= 0
+    ) {
+      return "Debes ingresar al menos un monto para el pago mixto.";
+    }
+
+    if (
+      montoEfectivo !== "" &&
+      montoTransferencia !== "" &&
+      convertirACentavos(montoEfectivoNumerico + montoTransferenciaNumerico) !==
+        convertirACentavos(total)
+    ) {
+      return "La suma de efectivo y transferencia debe ser igual al total de la venta.";
+    }
+
+    return "";
+  })();
+
+  useEffect(() => {
+    if (!esPagoMixto || !ultimoCampoMixtoEditado) return;
+
+    const centavosTotal = convertirACentavos(total);
+
+    if (ultimoCampoMixtoEditado === "efectivo" && montoEfectivo !== "") {
+      const centavosEfectivo = convertirACentavos(montoEfectivo);
+      setMontoTransferencia(
+        formatearMontoPago(Math.max(centavosTotal - centavosEfectivo, 0))
+      );
+    }
+
+    if (
+      ultimoCampoMixtoEditado === "transferencia" &&
+      montoTransferencia !== ""
+    ) {
+      const centavosTransferencia = convertirACentavos(montoTransferencia);
+      setMontoEfectivo(
+        formatearMontoPago(Math.max(centavosTotal - centavosTransferencia, 0))
+      );
+    }
+  }, [
+    esPagoMixto,
+    montoEfectivo,
+    montoTransferencia,
+    total,
+    ultimoCampoMixtoEditado,
+  ]);
 
   const construirPagos = () => {
     // El backend espera una lista de pagos, incluso cuando solo hay un metodo.
     if (esPagoMixto) {
-      const pagos = [];
-
-      if (montoEfectivoNumerico > 0) {
-        pagos.push({
+      return [
+        {
           Tipo_pago: tipoPagoEfectivo.Tipo_pago,
           Monto: montoEfectivoNumerico,
           Referencia: null,
-        });
-      }
-
-      if (montoTransferenciaNumerico > 0) {
-        pagos.push({
+        },
+        {
           Tipo_pago: tipoPagoTransferencia.Tipo_pago,
           Monto: montoTransferenciaNumerico,
           Referencia: referenciaPago.trim() || null,
-        });
-      }
-
-      return pagos;
+        },
+      ];
     }
 
     return [
@@ -548,15 +660,23 @@ function NuevaVenta({
         return "Los montos del pago mixto no pueden ser negativos.";
       }
 
+      if (montoEfectivoNumerico > total || montoTransferenciaNumerico > total) {
+        return "El monto ingresado no puede ser mayor que el total de la venta.";
+      }
+
       if (montoEfectivoNumerico <= 0 && montoTransferenciaNumerico <= 0) {
         return "Debes ingresar al menos un monto para el pago mixto.";
+      }
+
+      if (errorPagoMixto) {
+        return errorPagoMixto;
       }
 
       if (
         convertirACentavos(montoEfectivoNumerico + montoTransferenciaNumerico) !==
         convertirACentavos(total)
       ) {
-        return "La suma del pago en efectivo y transferencia debe coincidir con el total a pagar.";
+        return "La suma de efectivo y transferencia debe ser igual al total de la venta.";
       }
     }
 
@@ -569,6 +689,10 @@ function NuevaVenta({
     if (tipoCliente === "delivery") {
       if (!telefonoCliente.trim()) {
         return "Debes ingresar el teléfono del cliente para delivery.";
+      }
+
+      if (!telefonoDeliveryEsValido(telefonoCliente)) {
+        return "El telefono debe tener 8 digitos y estar entre 70000001 y 89999999.";
       }
 
       if (!direccionCliente.trim()) {
@@ -780,10 +904,17 @@ function NuevaVenta({
               <label>Teléfono</label>
               <input
                 type="tel"
+                inputMode="numeric"
+                maxLength="8"
                 placeholder="Número de teléfono"
                 value={telefonoCliente}
-                onChange={(e) => setTelefonoCliente(e.target.value)}
+                onChange={manejarTelefonoCliente}
               />
+              {errorTelefonoDelivery && (
+                <p className="ayuda-campo error-campo">
+                  {errorTelefonoDelivery}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1047,28 +1178,39 @@ function NuevaVenta({
                       <div className="campo-pago">
                         <label>Monto en efectivo</label>
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0.00"
                           value={montoEfectivo}
-                          onChange={(e) => setMontoEfectivo(e.target.value)}
+                          onChange={(e) =>
+                            actualizarPagoMixto("efectivo", e.target.value)
+                          }
                         />
                       </div>
 
                       <div className="campo-pago">
                         <label>Monto en transferencia</label>
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0.00"
                           value={montoTransferencia}
                           onChange={(e) =>
-                            setMontoTransferencia(e.target.value)
+                            actualizarPagoMixto(
+                              "transferencia",
+                              e.target.value
+                            )
                           }
                         />
                       </div>
+
+                      <p
+                        className={`ayuda-campo ${
+                          errorPagoMixto ? "error-campo" : ""
+                        }`}
+                      >
+                        {errorPagoMixto || "Restante calculado automaticamente."}
+                      </p>
 
                       <div className="campo-pago total-pagado">
                         <label>Total pagado</label>
@@ -1137,7 +1279,11 @@ function NuevaVenta({
                 type="button"
                 className="btn-finalizar"
                 onClick={finalizarVenta}
-                disabled={registrandoVenta}
+                disabled={
+                  registrandoVenta ||
+                  Boolean(errorTelefonoDelivery) ||
+                  Boolean(errorPagoMixto)
+                }
               >
                 {registrandoVenta ? "Registrando..." : "Finalizar venta"}
               </button>
