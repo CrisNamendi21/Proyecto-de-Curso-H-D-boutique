@@ -106,10 +106,32 @@ export async function actualizarDatos(ruta, datos) {
 }
 
 export async function iniciarSesion(credenciales) {
-  const respuesta = await enviarDatos("/auth/login", credenciales);
-  guardarToken(respuesta.access_token);
+  const respuesta = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: construirHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify(credenciales),
+  });
 
-  return respuesta;
+  let datos;
+
+  try {
+    datos = await procesarRespuesta(
+      respuesta,
+      "No pudimos iniciar sesión. Revisa tus datos e intenta nuevamente."
+    );
+  } catch (error) {
+    if (respuesta.status === 401 || respuesta.status === 403) {
+      throw new Error("Usuario o contraseña incorrectos.", { cause: error });
+    }
+
+    throw error;
+  }
+
+  guardarToken(datos.access_token);
+
+  return datos;
 }
 
 export const iniciarSesionDuena = iniciarSesion;

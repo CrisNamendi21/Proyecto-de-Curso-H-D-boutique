@@ -409,7 +409,8 @@
 }
 
 .resumen-linea,
-.resumen-total {
+.resumen-total,
+.resumen-delivery {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -421,6 +422,17 @@
 
 .resumen-linea strong {
   color: #2f2933;
+}
+
+.resumen-delivery {
+  background: #fffafd;
+  border: 1px solid #f4d9e5;
+  border-radius: 12px;
+  padding: 9px 10px;
+}
+
+.resumen-delivery strong {
+  color: #b02663;
 }
 
 .resumen-total {
@@ -540,6 +552,31 @@
   color: #b02663;
 }
 
+.lista-errores-venta {
+  margin-top: 10px;
+  background: #fff0f6;
+  border: 1px solid #e89abd;
+  color: #8f254f;
+  border-radius: 14px;
+  padding: 11px 13px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lista-errores-venta strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.lista-errores-venta ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.lista-errores-venta li + li {
+  margin-top: 4px;
+}
+
 .acciones-venta {
   flex-shrink: 0;
   display: flex;
@@ -634,7 +671,9 @@
   }
 
   .panel-productos {
-    height: 620px;
+    height: auto;
+    min-height: 420px;
+    max-height: 620px;
   }
 
   .panel-derecho {
@@ -645,11 +684,14 @@
   }
 
   .panel-productos-venta {
-    height: 260px;
+    height: auto;
+    min-height: 240px;
+    max-height: 360px;
   }
 
   .resumen-venta {
-    height: 460px;
+    height: auto;
+    min-height: 360px;
   }
 }
 

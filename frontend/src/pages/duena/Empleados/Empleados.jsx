@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   cambiarEstadoEmpleado,
   crearEmpleadoCompleto,
@@ -54,6 +54,7 @@ function Empleados() {
   const [guardando, setGuardando] = useState(false);
   const [empleadoProcesando, setEmpleadoProcesando] = useState(null);
   const [mostrarPasswordEmpleado, setMostrarPasswordEmpleado] = useState(false);
+  const [empleadoExpandido, setEmpleadoExpandido] = useState(null);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
@@ -120,6 +121,17 @@ function Empleados() {
     cargarDepartamentos();
   }, []);
 
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      cargarEmpleados({
+        busqueda: busqueda.trim(),
+        estado: estadoFiltro,
+      });
+    }, 250);
+
+    return () => clearTimeout(temporizador);
+  }, [busqueda, estadoFiltro]);
+
   const abrirModal = () => {
     setNuevoEmpleado({
       ...formularioInicial,
@@ -184,15 +196,6 @@ function Empleados() {
     setBusqueda("");
     setEstadoFiltro("Todos");
     setMensaje("");
-    cargarEmpleados();
-  };
-
-  const aplicarFiltros = () => {
-    setMensaje("");
-    cargarEmpleados({
-      busqueda: busqueda.trim(),
-      estado: estadoFiltro,
-    });
   };
 
   const validarEmpleado = () => {
@@ -368,10 +371,6 @@ function Empleados() {
           <option value="INACTIVO">Inactivo</option>
         </select>
 
-        <button className="btn-filtrar" onClick={aplicarFiltros}>
-          Filtrar
-        </button>
-
         <button className="btn-limpiar" onClick={limpiarFiltros}>
           Limpiar
         </button>
@@ -391,14 +390,10 @@ function Empleados() {
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Teléfono</th>
-                <th>Correo</th>
                 <th>Usuario</th>
                 <th>Cargo</th>
                 <th>Estado</th>
-                <th>Fecha de ingreso</th>
-                <th>Dirección</th>
-                <th>Departamento</th>
-                <th>Municipio</th>
+                <th>Detalle</th>
                 <th>Acción</th>
               </tr>
             </thead>
@@ -406,47 +401,96 @@ function Empleados() {
             <tbody>
               {cargando ? (
                 <tr>
-                  <td colSpan="12" className="sin-resultados">
+                  <td colSpan="8" className="sin-resultados">
                     Cargando empleados...
                   </td>
                 </tr>
               ) : empleados.length > 0 ? (
                 empleados.map((empleado) => (
-                  <tr key={empleado.ID_Empleado}>
-                    <td>{empleado.ID_Empleado}</td>
-                    <td>{empleado.NombreCompleto}</td>
-                    <td>{empleado.NumeroTelefono}</td>
-                    <td>{empleado.CorreoProfesional || "No registrado"}</td>
-                    <td>{empleado.Usuario || "Sin acceso"}</td>
-                    <td>{empleado.Cargo || "No registrado"}</td>
-                    <td>
-                      <span className={`estado ${empleado.Estado.toLowerCase()}`}>
-                        {empleado.Estado}
-                      </span>
-                    </td>
-                    <td>{empleado.FechaInicio}</td>
-                    <td>{empleado.Direccion || "No registrada"}</td>
-                    <td>{empleado.Departamento || "No registrado"}</td>
-                    <td>{empleado.Municipio || "No registrado"}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className={
-                          empleado.Estado === "ACTIVO"
-                            ? "btn-estado-empleado desactivar"
-                            : "btn-estado-empleado activar"
-                        }
-                        onClick={() => manejarEstadoEmpleado(empleado)}
-                        disabled={empleadoProcesando === empleado.ID_Empleado}
+                  <Fragment key={empleado.ID_Empleado}>
+                    <tr>
+                      <td>{empleado.ID_Empleado}</td>
+                      <td>{empleado.NombreCompleto}</td>
+                      <td>{empleado.NumeroTelefono}</td>
+                      <td>{empleado.Usuario || "Sin acceso"}</td>
+                      <td>{empleado.Cargo || "No registrado"}</td>
+                      <td>
+                        <span className={`estado ${empleado.Estado.toLowerCase()}`}>
+                          {empleado.Estado}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn-detalle-empleado"
+                          onClick={() =>
+                            setEmpleadoExpandido(
+                              empleadoExpandido === empleado.ID_Empleado
+                                ? null
+                                : empleado.ID_Empleado
+                            )
+                          }
+                        >
+                          {empleadoExpandido === empleado.ID_Empleado
+                            ? "Ocultar"
+                            : "Ver detalle"}
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className={
+                            empleado.Estado === "ACTIVO"
+                              ? "btn-estado-empleado desactivar"
+                              : "btn-estado-empleado activar"
+                          }
+                          onClick={() => manejarEstadoEmpleado(empleado)}
+                          disabled={empleadoProcesando === empleado.ID_Empleado}
+                        >
+                          {empleado.Estado === "ACTIVO" ? "Desactivar" : "Activar"}
+                        </button>
+                      </td>
+                    </tr>
+                    {empleadoExpandido === empleado.ID_Empleado && (
+                      <tr
+                        key={`${empleado.ID_Empleado}-detalle`}
+                        className="fila-detalle-empleado"
                       >
-                        {empleado.Estado === "ACTIVO" ? "Desactivar" : "Activar"}
-                      </button>
-                    </td>
-                  </tr>
+                        <td colSpan="8">
+                          <div className="detalle-empleado-grid">
+                            <div>
+                              <span>Correo</span>
+                              <strong>
+                                {empleado.CorreoProfesional || "No registrado"}
+                              </strong>
+                            </div>
+                            <div>
+                              <span>Fecha de ingreso</span>
+                              <strong>{empleado.FechaInicio}</strong>
+                            </div>
+                            <div>
+                              <span>Dirección</span>
+                              <strong>{empleado.Direccion || "No registrada"}</strong>
+                            </div>
+                            <div>
+                              <span>Departamento</span>
+                              <strong>
+                                {empleado.Departamento || "No registrado"}
+                              </strong>
+                            </div>
+                            <div>
+                              <span>Municipio</span>
+                              <strong>{empleado.Municipio || "No registrado"}</strong>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="12" className="sin-resultados">
+                  <td colSpan="8" className="sin-resultados">
                     No se encontraron empleados.
                   </td>
                 </tr>

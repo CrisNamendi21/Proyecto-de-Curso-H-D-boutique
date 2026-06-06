@@ -507,12 +507,14 @@
 }
 
 .modal-ventas {
-  width: min(580px, 100%);
+  width: min(760px, 100%);
+  max-height: calc(100vh - 40px);
   background: #ffffff;
   border-radius: 22px;
   border: 1px solid #f3d4e2;
   padding: 22px;
   box-shadow: 0 20px 60px rgba(47, 41, 51, 0.22);
+  overflow-y: auto;
 }
 
 .modal-header {
@@ -570,6 +572,7 @@
 .detalle-productos-venta {
   margin-top: 16px;
   overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 .detalle-productos-venta h3 {
@@ -614,21 +617,27 @@
 
 .ventas-page::-webkit-scrollbar,
 .tabla-ventas-contenedor::-webkit-scrollbar,
-.tabla-productos-vendidos::-webkit-scrollbar {
+.tabla-productos-vendidos::-webkit-scrollbar,
+.detalle-productos-venta::-webkit-scrollbar,
+.modal-ventas::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .ventas-page::-webkit-scrollbar-track,
 .tabla-ventas-contenedor::-webkit-scrollbar-track,
-.tabla-productos-vendidos::-webkit-scrollbar-track {
+.tabla-productos-vendidos::-webkit-scrollbar-track,
+.detalle-productos-venta::-webkit-scrollbar-track,
+.modal-ventas::-webkit-scrollbar-track {
   background: #fff0f6;
   border-radius: 20px;
 }
 
 .ventas-page::-webkit-scrollbar-thumb,
 .tabla-ventas-contenedor::-webkit-scrollbar-thumb,
-.tabla-productos-vendidos::-webkit-scrollbar-thumb {
+.tabla-productos-vendidos::-webkit-scrollbar-thumb,
+.detalle-productos-venta::-webkit-scrollbar-thumb,
+.modal-ventas::-webkit-scrollbar-thumb {
   background: #f8bbd7;
   border-radius: 20px;
 }

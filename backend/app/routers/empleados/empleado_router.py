@@ -189,7 +189,7 @@ def listar_empleados(
                 Empleado.Apellidos.ilike(termino),
                 Empleado.NumeroTelefono.ilike(termino),
                 Empleado.CorreoProfesional.ilike(termino),
-                Empleado.Cargo.ilike(termino),
+                UsuarioSistema.Usuario.ilike(termino),
             )
         )
 

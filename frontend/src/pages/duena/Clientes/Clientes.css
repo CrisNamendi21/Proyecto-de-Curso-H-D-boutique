@@ -54,7 +54,7 @@
 
 .clientes-filtros {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 80px 80px 160px;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(180px, 1fr) 90px 170px;
   gap: 10px;
   align-items: center;
   margin-bottom: 14px;

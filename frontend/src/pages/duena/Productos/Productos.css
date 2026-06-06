@@ -163,6 +163,7 @@
   padding: 18px;
   margin-bottom: 30px;
   overflow-x: auto;
+  scrollbar-gutter: stable;
 }
 
 .productos-tabla-card h3 {
@@ -339,6 +340,39 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px 18px;
+}
+
+.errores-formulario-producto,
+.error-modal-producto {
+  background: #ffe9ef;
+  border: 1px solid #f2b6c9;
+  border-radius: 10px;
+  color: #9f1f4c;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.error-modal-producto {
+  margin: 0 0 16px;
+}
+
+.errores-formulario-producto {
+  margin-bottom: 16px;
+}
+
+.errores-formulario-producto strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.errores-formulario-producto ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.errores-formulario-producto li + li {
+  margin-top: 4px;
 }
 
 .form-campo {
@@ -526,4 +560,22 @@
   .btn-guardar {
     width: 100%;
   }
+}
+
+.productos-tabla-card::-webkit-scrollbar,
+.modal-producto::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.productos-tabla-card::-webkit-scrollbar-track,
+.modal-producto::-webkit-scrollbar-track {
+  background: #fff1f7;
+  border-radius: 20px;
+}
+
+.productos-tabla-card::-webkit-scrollbar-thumb,
+.modal-producto::-webkit-scrollbar-thumb {
+  background: #f3a9c2;
+  border-radius: 20px;
 }

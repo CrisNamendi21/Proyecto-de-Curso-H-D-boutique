@@ -38,7 +38,18 @@ function Proveedores() {
   const [guardando, setGuardando] = useState(false);
   const [proveedorProcesando, setProveedorProcesando] = useState(null);
   const [error, setError] = useState("");
+  const [erroresFormulario, setErroresFormulario] = useState([]);
   const [mensaje, setMensaje] = useState("");
+
+  const telefonoEsValido = (telefono) => {
+    const telefonoLimpio = String(telefono || "").trim();
+
+    return (
+      /^\d{8}$/.test(telefonoLimpio) &&
+      Number(telefonoLimpio) > 70000000 &&
+      Number(telefonoLimpio) < 90000000
+    );
+  };
 
   const cargarDatos = async () => {
     setCargando(true);
@@ -92,6 +103,7 @@ function Proveedores() {
 
   const abrirModal = () => {
     setError("");
+    setErroresFormulario([]);
     setMensaje("");
     setNuevoProveedor(crearFormularioVacio());
     setMunicipios([]);
@@ -102,6 +114,7 @@ function Proveedores() {
     setMostrarModal(false);
     setNuevoProveedor(crearFormularioVacio());
     setMunicipios([]);
+    setErroresFormulario([]);
     setGuardando(false);
   };
 
@@ -115,16 +128,18 @@ function Proveedores() {
         ...proveedorActual,
         [name]: soloLetras,
       }));
+      setErroresFormulario([]);
       return;
     }
 
     if (name === "telefono") {
-      const soloNumeros = value.replace(/[^0-9]/g, "");
+      const soloNumeros = value.replace(/[^0-9]/g, "").slice(0, 8);
 
       setNuevoProveedor((proveedorActual) => ({
         ...proveedorActual,
         telefono: soloNumeros,
       }));
+      setErroresFormulario([]);
       return;
     }
 
@@ -134,6 +149,7 @@ function Proveedores() {
         idDepartamento: value,
         idMunicipio: "",
       }));
+      setErroresFormulario([]);
       cargarMunicipios(value);
       return;
     }
@@ -142,39 +158,44 @@ function Proveedores() {
       ...proveedorActual,
       [name]: value,
     }));
+    setErroresFormulario([]);
   };
 
   const validarProveedor = () => {
+    const errores = [];
+
     if (!nuevoProveedor.nombreEmpresa.trim()) {
-      return "El nombre del proveedor es obligatorio.";
+      errores.push("El nombre del proveedor es obligatorio.");
     }
 
     if (!nuevoProveedor.nombreContacto.trim()) {
-      return "El nombre de contacto es obligatorio.";
+      errores.push("El nombre de contacto es obligatorio.");
     }
 
     if (!nuevoProveedor.apellidoContacto.trim()) {
-      return "El apellido de contacto es obligatorio.";
+      errores.push("El apellido de contacto es obligatorio.");
     }
 
-    if (nuevoProveedor.telefono.trim().length < 8) {
-      return "El teléfono debe tener 8 dígitos.";
+    if (!telefonoEsValido(nuevoProveedor.telefono)) {
+      errores.push(
+        "El teléfono debe contener solo números, exactamente 8 dígitos y estar entre 70000001 y 89999999."
+      );
     }
 
     if (!nuevoProveedor.correo.trim()) {
-      return "El correo profesional es obligatorio.";
+      errores.push("El correo profesional es obligatorio.");
     }
 
     if (!nuevoProveedor.direccion.trim()) {
-      return "La dirección del proveedor es obligatoria.";
+      errores.push("La dirección del proveedor es obligatoria.");
     }
 
     if (!nuevoProveedor.idDepartamento) {
-      return "Debes seleccionar un departamento.";
+      errores.push("Debes seleccionar un departamento.");
     }
 
     if (!nuevoProveedor.idMunicipio) {
-      return "Debes seleccionar un municipio.";
+      errores.push("Debes seleccionar un municipio.");
     }
 
     const municipioSeleccionado = municipios.find(
@@ -183,14 +204,15 @@ function Proveedores() {
     );
 
     if (
-      !municipioSeleccionado ||
-      String(municipioSeleccionado.ID_Departamento) !==
-        String(nuevoProveedor.idDepartamento)
+      nuevoProveedor.idMunicipio &&
+      (!municipioSeleccionado ||
+        String(municipioSeleccionado.ID_Departamento) !==
+          String(nuevoProveedor.idDepartamento))
     ) {
-      return "El municipio seleccionado no pertenece al departamento indicado.";
+      errores.push("El municipio seleccionado no pertenece al departamento indicado.");
     }
 
-    return "";
+    return errores;
   };
 
   const guardarProveedor = async (e) => {
@@ -198,10 +220,11 @@ function Proveedores() {
     setError("");
     setMensaje("");
 
-    const errorValidacion = validarProveedor();
+    const erroresValidacion = validarProveedor();
 
-    if (errorValidacion) {
-      setError(errorValidacion);
+    if (erroresValidacion.length > 0) {
+      setErroresFormulario(erroresValidacion);
+      setError("");
       return;
     }
 
@@ -376,6 +399,19 @@ function Proveedores() {
             </div>
 
             <form className="proveedor-form" onSubmit={guardarProveedor}>
+              {error && <p className="error-modal-proveedor">{error}</p>}
+
+              {erroresFormulario.length > 0 && (
+                <div className="errores-formulario-proveedor" role="alert">
+                  <strong>Revisa estos datos:</strong>
+                  <ul>
+                    {erroresFormulario.map((errorFormulario) => (
+                      <li key={errorFormulario}>{errorFormulario}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="form-group">
                 <label>Nombre del proveedor</label>
                 <input

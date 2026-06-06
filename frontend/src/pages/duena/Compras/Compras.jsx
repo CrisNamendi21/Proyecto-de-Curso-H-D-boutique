@@ -45,6 +45,7 @@ function Compras() {
   const [guardando, setGuardando] = useState(false);
   const [compraProcesando, setCompraProcesando] = useState(null);
   const [error, setError] = useState("");
+  const [erroresModal, setErroresModal] = useState([]);
   const [mensaje, setMensaje] = useState("");
 
   const [filtros, setFiltros] = useState({
@@ -139,6 +140,7 @@ function Compras() {
 
   const abrirModal = () => {
     setError("");
+    setErroresModal([]);
     setMensaje("");
     setNuevaCompra(crearFormularioVacio());
     setProductosProveedor([]);
@@ -149,6 +151,7 @@ function Compras() {
     setMostrarModal(false);
     setNuevaCompra(crearFormularioVacio());
     setProductosProveedor([]);
+    setErroresModal([]);
     setGuardando(false);
   };
 
@@ -175,6 +178,7 @@ function Compras() {
         cantidad: "",
         productos: [],
       }));
+      setErroresModal([]);
       cargarProductosProveedor(value);
       return;
     }
@@ -183,6 +187,7 @@ function Compras() {
       ...compraActual,
       [name]: value,
     }));
+    setErroresModal([]);
   };
 
   const productoSeleccionado = productosProveedor.find(
@@ -193,16 +198,17 @@ function Compras() {
 
   const agregarProducto = () => {
     if (!productoSeleccionado) {
-      setError("Debes seleccionar un producto del proveedor.");
+      setErroresModal(["Debes seleccionar un producto del proveedor."]);
       return;
     }
 
     if (!nuevaCompra.cantidad || Number(nuevaCompra.cantidad) <= 0) {
-      setError("La cantidad debe ser mayor que cero.");
+      setErroresModal(["La cantidad debe ser mayor que cero."]);
       return;
     }
 
     setError("");
+    setErroresModal([]);
 
     const cantidad = Number(nuevaCompra.cantidad);
 
@@ -277,16 +283,29 @@ function Compras() {
   const totalCompra = totalProductos + costoEnvio;
 
   const validarCompra = () => {
-    if (!nuevaCompra.proveedor) return "Debes seleccionar un proveedor.";
-    if (!nuevaCompra.fecha) return "Debes seleccionar una fecha.";
-    if (!nuevaCompra.estado) return "Debes seleccionar un estado.";
-    if (nuevaCompra.productos.length === 0) {
-      return "Debes agregar al menos un producto a la compra.";
-    }
-    if (costoEnvio < 0) return "El costo de envío no puede ser negativo.";
-    if (totalCompra <= 0) return "El total de la compra debe ser mayor que cero.";
+    const errores = [];
 
-    return "";
+    if (!nuevaCompra.proveedor) errores.push("Debes seleccionar un proveedor.");
+    if (!nuevaCompra.fecha) errores.push("Debes seleccionar una fecha.");
+    if (!nuevaCompra.estado) errores.push("Debes seleccionar un estado.");
+    if (nuevaCompra.productos.length === 0) {
+      errores.push("Debes agregar al menos un producto a la compra.");
+    }
+
+    const productoCantidadInvalida = nuevaCompra.productos.find(
+      (producto) => Number(producto.Cantidad) <= 0
+    );
+
+    if (productoCantidadInvalida) {
+      errores.push(
+        `La cantidad de ${productoCantidadInvalida.Nombre} debe ser mayor que cero.`
+      );
+    }
+
+    if (costoEnvio < 0) errores.push("El costo de envío no puede ser negativo.");
+    if (totalCompra <= 0) errores.push("El total de la compra debe ser mayor que cero.");
+
+    return errores;
   };
 
   const guardarCompra = async (e) => {
@@ -294,10 +313,10 @@ function Compras() {
     setError("");
     setMensaje("");
 
-    const errorValidacion = validarCompra();
+    const erroresValidacion = validarCompra();
 
-    if (errorValidacion) {
-      setError(errorValidacion);
+    if (erroresValidacion.length > 0) {
+      setErroresModal(erroresValidacion);
       return;
     }
 
@@ -529,6 +548,19 @@ function Compras() {
             </div>
 
             <form className="form-compra" onSubmit={guardarCompra}>
+              {error && <p className="error-modal-compra">{error}</p>}
+
+              {erroresModal.length > 0 && (
+                <div className="errores-modal-compra" role="alert">
+                  <strong>Antes de guardar la compra:</strong>
+                  <ul>
+                    {erroresModal.map((errorModal) => (
+                      <li key={errorModal}>{errorModal}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="campo-compra">
                 <label>Proveedor</label>
                 <select

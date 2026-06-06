@@ -54,11 +54,15 @@ function NuevaVenta({
   const [notas, setNotas] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [tipoMensaje, setTipoMensaje] = useState("info");
+  const [erroresValidacion, setErroresValidacion] = useState([]);
 
   const mostrarMensaje = (texto, tipo = "info") => {
     setMensaje(texto);
     setTipoMensaje(tipo);
   };
+
+  const mensajeTelefonoDelivery =
+    "El teléfono debe contener solo números, exactamente 8 dígitos y estar entre 70000001 y 89999999.";
 
   const formatearDinero = (valor) => {
     return `C$ ${Number(valor).toLocaleString("es-NI", {
@@ -225,11 +229,13 @@ function NuevaVenta({
     setMontoTransferencia("");
     setUltimoCampoMixtoEditado(null);
     setMensaje("");
+    setErroresValidacion([]);
   };
 
   const manejarTelefonoCliente = (e) => {
     setTelefonoCliente(limpiarTelefono(e.target.value));
     setClienteSeleccionado(null);
+    setErroresValidacion([]);
   };
 
   const actualizarPagoMixto = (campoEditado, valor) => {
@@ -240,6 +246,7 @@ function NuevaVenta({
 
     setUltimoCampoMixtoEditado(campoEditado);
     setMensaje("");
+    setErroresValidacion([]);
 
     if (campoEditado === "efectivo") {
       setMontoEfectivo(valorLimpio);
@@ -256,6 +263,7 @@ function NuevaVenta({
     setMunicipioCliente("");
     setClienteSeleccionado(null);
     setMensaje("");
+    setErroresValidacion([]);
   };
 
   const manejarTipoCliente = (e) => {
@@ -274,6 +282,7 @@ function NuevaVenta({
     setMunicipios([]);
     setCostoDelivery("");
     setMensaje("");
+    setErroresValidacion([]);
   };
 
   const clienteTieneDeliveryCompleto = (cliente) => {
@@ -291,7 +300,7 @@ function NuevaVenta({
   const seleccionarClienteSugerido = async (cliente) => {
     setNombresCliente(cliente.Nombres || "");
     setApellidosCliente(cliente.Apellidos || "");
-    setTelefonoCliente(cliente.NumeroTelefono || "");
+    setTelefonoCliente(limpiarTelefono(String(cliente.NumeroTelefono || "")));
     setDireccionCliente(cliente.Direccion || "");
     setClienteSeleccionado(cliente);
     setSugerenciasClientes([]);
@@ -524,7 +533,7 @@ function NuevaVenta({
     tipoCliente === "delivery" &&
     telefonoCliente &&
     !telefonoDeliveryEsValido(telefonoCliente)
-      ? ""
+      ? mensajeTelefonoDelivery
       : "";
   const errorPagoMixto = (() => {
     if (!esPagoMixto) return "";
@@ -615,16 +624,18 @@ function NuevaVenta({
   };
 
   const validarVenta = () => {
+    const errores = [];
+
     if (!fecha) {
-      return "Debes seleccionar una fecha.";
+      errores.push("Debes seleccionar una fecha.");
     }
 
-    if (fecha < obtenerFechaActual()) {
-      return "La fecha no puede ser anterior a la fecha actual.";
+    if (fecha && fecha < obtenerFechaActual()) {
+      errores.push("La fecha no puede ser anterior a la fecha actual.");
     }
 
     if (productosVenta.length === 0) {
-      return "Debes agregar al menos un producto a la venta.";
+      errores.push("Debes agregar al menos un producto a la venta.");
     }
 
     const productoSinPrecio = productosVenta.find(
@@ -632,7 +643,7 @@ function NuevaVenta({
     );
 
     if (productoSinPrecio) {
-      return `El producto ${productoSinPrecio.Nombre} no tiene precio válido.`;
+      errores.push(`El producto ${productoSinPrecio.Nombre} no tiene precio válido.`);
     }
 
     const productoSinStock = productosVenta.find(
@@ -640,79 +651,96 @@ function NuevaVenta({
     );
 
     if (productoSinStock) {
-      return `La cantidad de ${productoSinStock.Nombre} supera el stock disponible.`;
+      errores.push(
+        `La cantidad de ${productoSinStock.Nombre} supera el stock disponible.`
+      );
+    }
+
+    const productoCantidadInvalida = productosVenta.find(
+      (producto) =>
+        producto.Cantidad === "" ||
+        Number(producto.Cantidad) <= 0 ||
+        !Number.isFinite(Number(producto.Cantidad))
+    );
+
+    if (productoCantidadInvalida) {
+      errores.push(
+        `La cantidad de ${productoCantidadInvalida.Nombre} debe ser mayor que cero.`
+      );
     }
 
     if (!metodoPago) {
-      return "Debes seleccionar un método de pago.";
+      errores.push("Debes seleccionar un método de pago.");
     }
 
     if (total <= 0) {
-      return "El total de la venta debe ser mayor que cero.";
+      errores.push("El total de la venta debe ser mayor que cero.");
     }
 
     if (esPagoMixto) {
       if (!tipoPagoEfectivo || !tipoPagoTransferencia) {
-        return "No se encontraron los tipos de pago Efectivo y Transferencia.";
+        errores.push("No se encontraron los tipos de pago Efectivo y Transferencia.");
       }
 
       if (montoEfectivoNumerico < 0 || montoTransferenciaNumerico < 0) {
-        return "Los montos del pago mixto no pueden ser negativos.";
+        errores.push("Los montos del pago mixto no pueden ser negativos.");
       }
 
       if (montoEfectivoNumerico > total || montoTransferenciaNumerico > total) {
-        return "El monto ingresado no puede ser mayor que el total de la venta.";
+        errores.push("El monto ingresado no puede ser mayor que el total de la venta.");
       }
 
       if (montoEfectivoNumerico <= 0 && montoTransferenciaNumerico <= 0) {
-        return "Debes ingresar al menos un monto para el pago mixto.";
+        errores.push("Debes ingresar al menos un monto para el pago mixto.");
       }
 
       if (errorPagoMixto) {
-        return errorPagoMixto;
+        errores.push(errorPagoMixto);
       }
 
       if (
         convertirACentavos(montoEfectivoNumerico + montoTransferenciaNumerico) !==
         convertirACentavos(total)
       ) {
-        return "La suma de efectivo y transferencia debe ser igual al total de la venta.";
+        errores.push(
+          "La suma de efectivo y transferencia debe ser igual al total de la venta."
+        );
       }
     }
 
     if (tipoCliente !== "generico") {
       if (!nombresCliente.trim() || !apellidosCliente.trim()) {
-        return "Debes ingresar nombres y apellidos del cliente.";
+        errores.push("Debes ingresar nombres y apellidos del cliente.");
       }
     }
 
     if (tipoCliente === "delivery") {
       if (!telefonoCliente.trim()) {
-        return "Debes ingresar el teléfono del cliente para delivery.";
+        errores.push("Debes ingresar el teléfono del cliente para delivery.");
       }
 
       if (!telefonoDeliveryEsValido(telefonoCliente)) {
-        return "El telefono debe tener 8 digitos y estar entre 70000001 y 89999999.";
+        errores.push(mensajeTelefonoDelivery);
       }
 
       if (!direccionCliente.trim()) {
-        return "Debes ingresar la dirección exacta para delivery.";
+        errores.push("Debes ingresar la dirección exacta para delivery.");
       }
 
       if (!departamentoCliente) {
-        return "Debes seleccionar el departamento para delivery.";
+        errores.push("Debes seleccionar el departamento para delivery.");
       }
 
       if (!municipioCliente) {
-        return "Debes seleccionar el municipio para delivery.";
+        errores.push("Debes seleccionar el municipio para delivery.");
       }
 
       if (costoDeliveryNumerico <= 0) {
-        return "El costo de delivery debe ser mayor que cero.";
+        errores.push("El costo de delivery debe ser mayor que cero.");
       }
     }
 
-    return "";
+    return [...new Set(errores)];
   };
 
   const construirPayload = () => {
@@ -765,11 +793,13 @@ function NuevaVenta({
 
   const finalizarVenta = async () => {
     setMensaje("");
+    setErroresValidacion([]);
 
-    const errorValidacion = validarVenta();
+    const errores = validarVenta();
 
-    if (errorValidacion) {
-      mostrarMensaje(errorValidacion, "error");
+    if (errores.length > 0) {
+      setErroresValidacion(errores);
+      mostrarMensaje("Revisa los datos marcados antes de finalizar la venta.", "error");
       return;
     }
 
@@ -1164,6 +1194,15 @@ function NuevaVenta({
                 <strong>{formatearDinero(costoDeliveryNumerico)}</strong>
               </div>
 
+              {tipoCliente === "delivery" && (
+                <div className="resumen-delivery">
+                  <span>Teléfono delivery</span>
+                  <strong>
+                    {telefonoCliente || "Pendiente"}
+                  </strong>
+                </div>
+              )}
+
               <div className="resumen-total">
                 <span>Total a pagar</span>
                 <strong>{formatearDinero(total)}</strong>
@@ -1262,6 +1301,17 @@ function NuevaVenta({
                 <p className={`mensaje-venta mensaje-${tipoMensaje}`}>
                   {mensaje}
                 </p>
+              )}
+
+              {erroresValidacion.length > 0 && (
+                <div className="lista-errores-venta" role="alert">
+                  <strong>Para finalizar la venta:</strong>
+                  <ul>
+                    {erroresValidacion.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
 

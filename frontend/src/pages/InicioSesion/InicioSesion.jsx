@@ -7,11 +7,28 @@ function InicioSesion({ onLoginCorrecto }) {
   const [password, setPassword] = useState("");
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [erroresFormulario, setErroresFormulario] = useState([]);
   const [cargando, setCargando] = useState(false);
 
   const manejarSubmit = async (e) => {
     e.preventDefault();
     setMensaje("");
+    const errores = [];
+
+    if (!usuario.trim()) {
+      errores.push("Ingresa tu usuario.");
+    }
+
+    if (!password.trim()) {
+      errores.push("Ingresa tu contraseña.");
+    }
+
+    if (errores.length > 0) {
+      setErroresFormulario(errores);
+      return;
+    }
+
+    setErroresFormulario([]);
     setCargando(true);
 
     try {
@@ -22,7 +39,10 @@ function InicioSesion({ onLoginCorrecto }) {
 
       onLoginCorrecto(sesion);
     } catch (error) {
-      setMensaje(error.message || "No se pudo iniciar sesión.");
+      setMensaje(
+        error.message ||
+          "No pudimos iniciar sesión. Revisa tus datos e intenta nuevamente."
+      );
     } finally {
       setCargando(false);
     }
@@ -36,16 +56,19 @@ function InicioSesion({ onLoginCorrecto }) {
 
         <h2>Inicio de sesión</h2>
 
-        <form className="login-form" onSubmit={manejarSubmit}>
+        <form className="login-form" onSubmit={manejarSubmit} noValidate>
           <div className="login-field">
             <label>Usuario</label>
             <input
               type="text"
               value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
+              onChange={(e) => {
+                setUsuario(e.target.value);
+                setErroresFormulario([]);
+                setMensaje("");
+              }}
               placeholder="Ingrese el usuario"
               autoComplete="username"
-              required
             />
           </div>
 
@@ -55,10 +78,13 @@ function InicioSesion({ onLoginCorrecto }) {
               <input
                 type={mostrarPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErroresFormulario([]);
+                  setMensaje("");
+                }}
                 placeholder="Contraseña"
                 autoComplete="current-password"
-                required
               />
               <button
                 type="button"
@@ -77,6 +103,14 @@ function InicioSesion({ onLoginCorrecto }) {
               </button>
             </div>
           </div>
+
+          {erroresFormulario.length > 0 && (
+            <div className="login-error-list" role="alert">
+              {erroresFormulario.map((error) => (
+                <p key={error}>{error}</p>
+              ))}
+            </div>
+          )}
 
           {mensaje && <p className="login-error">{mensaje}</p>}
 

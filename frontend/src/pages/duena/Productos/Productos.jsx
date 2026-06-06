@@ -47,6 +47,7 @@ function Productos() {
   const [guardando, setGuardando] = useState(false);
   const [productoProcesando, setProductoProcesando] = useState(null);
   const [error, setError] = useState("");
+  const [erroresFormulario, setErroresFormulario] = useState([]);
   const [mensaje, setMensaje] = useState("");
 
   const [filtros, setFiltros] = useState({
@@ -136,6 +137,7 @@ function Productos() {
 
   const abrirModal = () => {
     setError("");
+    setErroresFormulario([]);
     setMensaje("");
     setMostrarModal(true);
   };
@@ -143,6 +145,7 @@ function Productos() {
   const cerrarModal = () => {
     setMostrarModal(false);
     setNuevoProducto(crearFormularioVacio());
+    setErroresFormulario([]);
     setGuardando(false);
   };
 
@@ -155,6 +158,7 @@ function Productos() {
         ...productoActual,
         nombre: nombreLimpio,
       }));
+      setErroresFormulario([]);
       return;
     }
 
@@ -164,6 +168,7 @@ function Productos() {
         costo: value,
         precioVenta: calcularPrecioVenta(value),
       }));
+      setErroresFormulario([]);
       return;
     }
 
@@ -171,6 +176,7 @@ function Productos() {
       ...productoActual,
       [name]: value,
     }));
+    setErroresFormulario([]);
   };
 
   const manejarCambioFiltro = (e) => {
@@ -198,41 +204,42 @@ function Productos() {
   };
 
   const validarNuevoProducto = () => {
+    const errores = [];
     const fechaActual = obtenerFechaActual();
 
     if (!nuevoProducto.nombre.trim()) {
-      return "El nombre del producto es obligatorio.";
+      errores.push("El nombre del producto es obligatorio.");
     }
 
     if (!nuevoProducto.fecha) {
-      return "La fecha es obligatoria.";
+      errores.push("La fecha es obligatoria.");
     }
 
-    if (nuevoProducto.fecha < fechaActual) {
-      return "No puedes seleccionar una fecha anterior a la fecha actual.";
+    if (nuevoProducto.fecha && nuevoProducto.fecha < fechaActual) {
+      errores.push("No puedes seleccionar una fecha anterior a la fecha actual.");
     }
 
     if (!nuevoProducto.idCategoria) {
-      return "Debes seleccionar una categoría.";
+      errores.push("Debes seleccionar una categoría.");
     }
 
     if (!nuevoProducto.idTalla) {
-      return "Debes seleccionar una talla.";
+      errores.push("Debes seleccionar una talla.");
     }
 
     if (!nuevoProducto.idProveedor) {
-      return "Debes seleccionar un proveedor.";
+      errores.push("Debes seleccionar un proveedor.");
     }
 
     if (nuevoProducto.costo === "" || Number(nuevoProducto.costo) <= 0) {
-      return "El costo debe ser mayor que cero.";
+      errores.push("El costo debe ser mayor que cero.");
     }
 
     if (nuevoProducto.stock === "" || Number(nuevoProducto.stock) < 0) {
-      return "El stock no puede ser negativo.";
+      errores.push("El stock no puede quedar vacío ni ser negativo.");
     }
 
-    return "";
+    return errores;
   };
 
   const guardarProducto = async (e) => {
@@ -240,10 +247,11 @@ function Productos() {
     setError("");
     setMensaje("");
 
-    const errorValidacion = validarNuevoProducto();
+    const erroresValidacion = validarNuevoProducto();
 
-    if (errorValidacion) {
-      setError(errorValidacion);
+    if (erroresValidacion.length > 0) {
+      setErroresFormulario(erroresValidacion);
+      setError("");
       return;
     }
 
@@ -498,6 +506,19 @@ function Productos() {
             </div>
 
             <form onSubmit={guardarProducto} className="form-producto">
+              {error && <p className="error-modal-producto">{error}</p>}
+
+              {erroresFormulario.length > 0 && (
+                <div className="errores-formulario-producto" role="alert">
+                  <strong>Revisa estos datos:</strong>
+                  <ul>
+                    {erroresFormulario.map((errorFormulario) => (
+                      <li key={errorFormulario}>{errorFormulario}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="form-grid">
                 <div className="form-campo">
                   <label>Nombre del producto</label>

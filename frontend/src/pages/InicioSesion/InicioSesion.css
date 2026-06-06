@@ -103,7 +103,8 @@
   transform: rotate(-35deg);
 }
 
-.login-error {
+.login-error,
+.login-error-list {
   background: #fff0f5;
   border: 1px solid #f5a8c8;
   border-radius: 12px;
@@ -111,7 +112,20 @@
   font-size: 14px;
   margin: 0;
   padding: 10px 12px;
+}
+
+.login-error {
   text-align: center;
+}
+
+.login-error-list {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.login-error-list p {
+  margin: 0;
 }
 
 .login-form .login-btn:disabled {

@@ -342,7 +342,7 @@ body {
 
 .vista-previa-contenido {
   display: grid;
-  grid-template-columns: 180px 1fr 1fr 150px;
+  grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr) minmax(170px, auto);
   gap: 18px;
   align-items: stretch;
 }
@@ -456,6 +456,7 @@ body {
 }
 
 .acciones-recibo button {
+  width: 100%;
   border: 1px solid #f8bbd7;
   background: #fff6fb;
   color: #c73576;
@@ -464,6 +465,7 @@ body {
   font-size: 14px;
   font-weight: 900;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .acciones-recibo button:hover {
@@ -471,19 +473,25 @@ body {
 }
 
 .tabla-recibos::-webkit-scrollbar,
-.recibos-page::-webkit-scrollbar {
+.recibos-page::-webkit-scrollbar,
+.recibo-productos::-webkit-scrollbar,
+.recibo-completo::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .tabla-recibos::-webkit-scrollbar-track,
-.recibos-page::-webkit-scrollbar-track {
+.recibos-page::-webkit-scrollbar-track,
+.recibo-productos::-webkit-scrollbar-track,
+.recibo-completo::-webkit-scrollbar-track {
   background: #fff0f6;
   border-radius: 20px;
 }
 
 .tabla-recibos::-webkit-scrollbar-thumb,
-.recibos-page::-webkit-scrollbar-thumb {
+.recibos-page::-webkit-scrollbar-thumb,
+.recibo-productos::-webkit-scrollbar-thumb,
+.recibo-completo::-webkit-scrollbar-thumb {
   background: #f8bbd7;
   border-radius: 20px;
 }
@@ -581,7 +589,7 @@ body {
 }
 
 .modal-recibo {
-  width: min(880px, 100%);
+  width: min(960px, 100%);
   max-height: 92vh;
   background: #ffffff;
   border: 1px solid #f3d4e2;
@@ -698,6 +706,7 @@ body {
 .recibo-productos {
   margin-bottom: 20px;
   overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 .recibo-productos h3 {

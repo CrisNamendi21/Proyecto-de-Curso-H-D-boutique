@@ -110,6 +110,17 @@ function Clientes() {
     cargarDepartamentos();
   }, []);
 
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      cargarClientes({
+        busqueda: busqueda.trim(),
+        departamento: filtroDepartamento,
+      });
+    }, 250);
+
+    return () => clearTimeout(temporizador);
+  }, [busqueda, filtroDepartamento]);
+
   const abrirModal = () => {
     setNuevoCliente(formularioInicial);
     setMunicipios([]);
@@ -166,19 +177,10 @@ function Clientes() {
     }
   };
 
-  const aplicarFiltros = () => {
-    setMensaje("");
-    cargarClientes({
-      busqueda: busqueda.trim(),
-      departamento: filtroDepartamento,
-    });
-  };
-
   const limpiarFiltros = () => {
     setBusqueda("");
     setFiltroDepartamento("Todos");
     setMensaje("");
-    cargarClientes();
   };
 
   const validarCliente = () => {
@@ -329,10 +331,6 @@ function Clientes() {
             ))}
           </select>
         </div>
-
-        <button className="btn-filtrar" onClick={aplicarFiltros}>
-          Filtrar
-        </button>
 
         <button className="btn-limpiar" onClick={limpiarFiltros}>
           Limpiar

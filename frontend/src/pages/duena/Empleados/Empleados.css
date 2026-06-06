@@ -114,7 +114,6 @@
   border-color: #ff3f7f;
 }
 
-.btn-filtrar,
 .btn-limpiar,
 .btn-agregar-empleado {
   height: 42px;
@@ -124,11 +123,6 @@
   font-weight: 600;
   border: 1px solid #f3aac8;
   transition: 0.2s ease;
-}
-
-.btn-filtrar {
-  background: #fff3f8;
-  color: #ff3f7f;
 }
 
 .btn-limpiar {
@@ -143,7 +137,6 @@
   border: none;
 }
 
-.btn-filtrar:hover,
 .btn-limpiar:hover {
   background: #ffe5ef;
 }
@@ -176,7 +169,7 @@
 
 .empleados-tabla {
   width: 100%;
-  min-width: 1280px;
+  min-width: 820px;
   border-collapse: collapse;
 }
 
@@ -247,6 +240,52 @@
 .btn-estado-empleado:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+.btn-detalle-empleado {
+  min-width: 92px;
+  height: 32px;
+  border: 1px solid #f3aac8;
+  background: #fff3f8;
+  color: #ff3f7f;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fila-detalle-empleado td {
+  background: #fffafd;
+  padding: 14px 18px;
+}
+
+.detalle-empleado-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.detalle-empleado-grid div {
+  border: 1px solid #f8ccdc;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 10px;
+  min-width: 0;
+}
+
+.detalle-empleado-grid span {
+  display: block;
+  color: #9b6b7e;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.detalle-empleado-grid strong {
+  display: block;
+  color: #243248;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .sin-resultados {
@@ -487,6 +526,15 @@
     flex-wrap: wrap;
   }
 
+  .empleados-filtros input,
+  .empleados-filtros select {
+    flex: 1 1 220px;
+  }
+
+  .detalle-empleado-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .btn-agregar-empleado {
     margin-left: 0;
   }
@@ -497,6 +545,25 @@
 }
 
 @media (max-width: 600px) {
+  .empleados-page {
+    padding: 16px;
+  }
+
+  .empleados-resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .empleados-filtros input,
+  .empleados-filtros select,
+  .btn-limpiar,
+  .btn-agregar-empleado {
+    width: 100%;
+  }
+
+  .detalle-empleado-grid {
+    grid-template-columns: 1fr;
+  }
+
   .form-empleado {
     grid-template-columns: 1fr;
   }
