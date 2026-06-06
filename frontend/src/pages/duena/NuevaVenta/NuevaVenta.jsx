@@ -62,7 +62,7 @@ function NuevaVenta({
   };
 
   const mensajeTelefonoDelivery =
-    "El teléfono debe contener solo números, exactamente 8 dígitos y estar entre 70000001 y 89999999.";
+    "El teléfono debe contener solo numeros de 8 digitos";
 
   const formatearDinero = (valor) => {
     return `C$ ${Number(valor).toLocaleString("es-NI", {
