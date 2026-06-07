@@ -145,6 +145,7 @@ def _recibo_a_detalle(recibo, venta, cliente, empleado, db: Session):
     return {
         "ID_Recibo": recibo.ID_Recibo,
         "numero_recibo": _numero_recibo(recibo.ID_Recibo),
+        "numero_venta": f"V-{venta.ID_Venta:05d}",
         "fecha": _formatear_fecha(recibo.FechaEmision),
         "cliente": _nombre_persona(cliente.Nombres, cliente.Apellidos, "Cliente sin nombre"),
         "vendedor": _nombre_persona(empleado.Nombres, empleado.Apellidos, "Empleado sin nombre"),

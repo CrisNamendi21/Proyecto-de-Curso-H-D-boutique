@@ -59,7 +59,6 @@ function ClientesLectura() {
         <table className="clientes-tabla">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Cliente</th>
               <th>Teléfono</th>
               <th>Estado</th>
@@ -67,9 +66,8 @@ function ClientesLectura() {
           </thead>
 
           <tbody>
-            {clientes.map((cliente) => (
-              <tr key={cliente.ID_Cliente}>
-                <td>{cliente.ID_Cliente}</td>
+            {clientes.map((cliente, indice) => (
+              <tr key={cliente.ID_Cliente || `${cliente.NombreCompleto}-${indice}`}>
                 <td>{cliente.NombreCompleto}</td>
                 <td>{cliente.NumeroTelefono || "No registrado"}</td>
                 <td>{cliente.Estado || "No registrado"}</td>
@@ -78,7 +76,7 @@ function ClientesLectura() {
 
             {!cargando && clientes.length === 0 && (
               <tr>
-                <td colSpan="4" className="sin-resultados">
+                <td colSpan="3" className="sin-resultados">
                   No se encontraron clientes.
                 </td>
               </tr>

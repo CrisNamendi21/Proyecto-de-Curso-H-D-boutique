@@ -2,11 +2,18 @@ import { useEffect, useState } from "react";
 import "../../duena/Dashboard/DashboardDuena.css";
 import "./DashboardColaborador.css";
 
-import { obtenerDashboardColaborador, registrarVentaColaborador } from "../../../api/api";
+import {
+  descargarPdfReciboColaborador,
+  obtenerDashboardColaborador,
+  obtenerDetalleReciboColaborador,
+  obtenerProductosColaborador,
+  registrarVentaColaborador,
+} from "../../../api/api";
 import ClientesLectura from "./ClientesLectura";
 import NuevaVenta from "../../duena/NuevaVenta/NuevaVenta";
 import ProductosLectura from "./ProductosLectura";
 import RecibosColaborador from "./RecibosColaborador";
+import VentasColaborador from "./VentasColaborador";
 
 const resumenInicial = {
   ventas_hoy: 0,
@@ -82,6 +89,13 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
           </button>
 
           <button
+            className={vistaActual === "ventasDia" ? "menu-item active" : "menu-item"}
+            onClick={() => setVistaActual("ventasDia")}
+          >
+            Ventas del día
+          </button>
+
+          <button
             className={vistaActual === "productos" ? "menu-item active" : "menu-item"}
             onClick={() => setVistaActual("productos")}
           >
@@ -128,9 +142,16 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
                 <div className="colaborador-panel">
                   <h3>Bienvenido, {sesion?.nombre || "Colaborador"}</h3>
                   <p>
-                    Desde este panel puedes registrar ventas, consultar productos
+                    Desde este panel puedes registrar ventas, consultar productos,
                     consultar clientes y revisar tus recibos.
                   </p>
+                  <button
+                    type="button"
+                    className="colaborador-acceso"
+                    onClick={() => setVistaActual("ventasDia")}
+                  >
+                    Ver ventas del día
+                  </button>
                 </div>
 
                 <div className="colaborador-panel">
@@ -248,6 +269,9 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
               <NuevaVenta
                 idEmpleado={sesion?.id_empleado}
                 registrarVenta={registrarVentaColaborador}
+                obtenerDetalleReciboVenta={obtenerDetalleReciboColaborador}
+                descargarPdfReciboVenta={descargarPdfReciboColaborador}
+                obtenerProductosVenta={obtenerProductosColaborador}
               />
             </div>
           )}
@@ -255,6 +279,12 @@ function DashboardColaborador({ sesion, cerrarSesion }) {
           {vistaActual === "productos" && (
             <div className="vista-modulo">
               <ProductosLectura />
+            </div>
+          )}
+
+          {vistaActual === "ventasDia" && (
+            <div className="vista-modulo">
+              <VentasColaborador />
             </div>
           )}
 

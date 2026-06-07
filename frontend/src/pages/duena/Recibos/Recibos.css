@@ -558,6 +558,45 @@ body {
   }
 }
 
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .recibo-completo,
+  .recibo-completo * {
+    visibility: visible;
+  }
+
+  .modal-recibo-fondo,
+  .modal-recibo {
+    position: static;
+    inset: auto;
+    display: block;
+    width: 100%;
+    max-height: none;
+    padding: 0;
+    background: #ffffff;
+    box-shadow: none;
+    border: none;
+  }
+
+  .modal-recibo-header,
+  .modal-recibo-acciones {
+    display: none;
+  }
+
+  .recibo-completo {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 18px;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+}
+
 @media (max-width: 760px) {
   .recibos-filtros {
     gap: 12px;

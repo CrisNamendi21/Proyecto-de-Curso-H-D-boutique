@@ -25,6 +25,13 @@ from app.routers.ventas.recibo_router import (
     _recibo_a_listado,
 )
 from app.routers.ventas.venta_router import registrar_venta_completa
+from app.routers.ventas.venta_router import (
+    _a_float,
+    _clasificar_metodo_pago,
+    _formatear_hora,
+    _nombre_cliente,
+    _normalizar_metodo_pago,
+)
 from app.schemas.auth.auth_schema import UsuarioAutenticado
 from app.schemas.ventas.venta_completa_schema import VentaCompletaCreate
 
@@ -52,9 +59,39 @@ def _nombre_persona(nombres, apellidos, fallback="Sin nombre"):
     return nombre or fallback
 
 
+def _texto_busqueda_cliente(cliente: Cliente):
+    return " ".join(
+        valor.strip().lower()
+        for valor in (
+            cliente.Nombres or "",
+            cliente.Apellidos or "",
+            cliente.NumeroTelefono or "",
+        )
+        if valor and valor.strip()
+    )
+
+
 def _recibo_propio_query(db: Session, id_empleado: int):
     # Los recibos de colaborador siempre se filtran por el empleado autenticado.
     return _query_recibos_base(db).filter(Venta.ID_Empleado == id_empleado)
+
+
+def _producto_para_colaborador(producto: Producto, db: Session):
+    producto_data = producto_con_precio(producto, db)
+
+    return {
+        "ID_Producto": producto_data["ID_Producto"],
+        "ID_Categoria": producto_data["ID_Categoria"],
+        "ID_Talla": producto_data["ID_Talla"],
+        "Talla": producto_data["Talla"],
+        "Nombre": producto_data["Nombre"],
+        "Stock": producto_data["Stock"],
+        "Estado": producto_data["Estado"],
+        "Descripcion": producto_data["Descripcion"],
+        "PrecioUnitario": producto_data["PrecioUnitario"],
+        "Categoria": producto_data["Categoria"],
+        "Proveedor": producto_data["Proveedor"],
+    }
 
 
 @router.get("/dashboard")
@@ -112,7 +149,7 @@ def obtener_dashboard_colaborador(
             for recibo, venta, cliente, empleado in ultimos_recibos_data
         ],
         "productos_bajo_stock": [
-            producto_con_precio(producto, db)
+            _producto_para_colaborador(producto, db)
             for producto in productos_bajo_stock
         ],
     }
@@ -131,7 +168,7 @@ def listar_productos_colaborador(
         query = query.filter(Producto.Nombre.ilike(f"%{busqueda.strip()}%"))
 
     productos = query.order_by(Producto.Nombre.asc()).all()
-    return [producto_con_precio(producto, db) for producto in productos]
+    return [_producto_para_colaborador(producto, db) for producto in productos]
 
 
 @router.get("/clientes")
@@ -142,9 +179,9 @@ def listar_clientes_colaborador(
 ):
     _id_empleado_colaborador(usuario_actual)
     query = db.query(Cliente)
+    texto = busqueda.strip().lower() if busqueda and busqueda.strip() else None
 
-    if busqueda and busqueda.strip():
-        texto = busqueda.strip().lower()
+    if texto:
         patron = f"%{texto}%"
         query = query.filter(
             or_(
@@ -155,12 +192,20 @@ def listar_clientes_colaborador(
         )
 
     clientes = query.order_by(Cliente.ID_Cliente.desc()).limit(50).all()
+
+    if texto and not clientes:
+        # SQL Server no siempre filtra igual el nombre completo compuesto; esta
+        # segunda pasada mantiene la busqueda del colaborador intuitiva.
+        clientes = [
+            cliente
+            for cliente in db.query(Cliente).order_by(Cliente.ID_Cliente.desc()).all()
+            if texto in _texto_busqueda_cliente(cliente)
+        ][:50]
+
     return [
         {
             "ID_Cliente": cliente.ID_Cliente,
             "NombreCompleto": _nombre_persona(cliente.Nombres, cliente.Apellidos),
-            "Nombres": cliente.Nombres,
-            "Apellidos": cliente.Apellidos,
             "NumeroTelefono": cliente.NumeroTelefono,
             "Estado": cliente.Estado,
         }
@@ -179,6 +224,99 @@ def registrar_venta_colaborador(
     # El colaborador no puede decidir el empleado de la venta desde el frontend.
     venta_segura = venta_data.model_copy(update={"ID_Empleado": id_empleado})
     return registrar_venta_completa(venta_segura, db)
+
+
+@router.get("/ventas/resumen-dia")
+def obtener_resumen_ventas_dia_colaborador(
+    fecha: Optional[date] = None,
+    cliente: Optional[str] = None,
+    metodo_pago: Optional[str] = None,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioAutenticado = Depends(requerir_roles("colaborador"))
+):
+    id_empleado = _id_empleado_colaborador(usuario_actual)
+    metodo_filtrado = _normalizar_metodo_pago(metodo_pago)
+    cliente_filtrado = cliente.strip().lower() if cliente and cliente.strip() else None
+
+    ventas_query = db.query(Venta, Cliente, Recibo).join(
+        Cliente,
+        Venta.ID_Cliente == Cliente.ID_Cliente
+    ).outerjoin(
+        Recibo,
+        Recibo.ID_Venta == Venta.ID_Venta
+    ).filter(
+        Venta.ID_Empleado == id_empleado
+    )
+
+    if fecha:
+        ventas_query = ventas_query.filter(Venta.FechaVenta == fecha)
+
+    if cliente_filtrado:
+        patron_cliente = f"%{cliente_filtrado}%"
+        ventas_query = ventas_query.filter(
+            func.lower(
+                func.concat(
+                    func.coalesce(Cliente.Nombres, ""),
+                    " ",
+                    func.coalesce(Cliente.Apellidos, "")
+                )
+            ).like(patron_cliente)
+        )
+
+    ventas_data = ventas_query.order_by(
+        Recibo.FechaEmision.desc(),
+        Venta.ID_Venta.desc()
+    ).all()
+
+    ventas_filtradas = []
+    totales_metodos = {
+        "Efectivo": 0,
+        "Transferencia": 0,
+        "Mixto": 0,
+    }
+
+    for venta, cliente_venta, recibo in ventas_data:
+        pagos = db.query(PagoVenta, TipoPago.NombrePago).join(
+            TipoPago,
+            PagoVenta.Tipo_pago == TipoPago.Tipo_pago
+        ).filter(
+            PagoVenta.ID_Venta == venta.ID_Venta
+        ).all()
+
+        metodo = _clasificar_metodo_pago(pagos)
+
+        if metodo_filtrado and metodo.lower() != metodo_filtrado:
+            continue
+
+        if metodo in totales_metodos:
+            totales_metodos[metodo] += _a_float(venta.Total)
+
+        ventas_filtradas.append({
+            "id_venta": venta.ID_Venta,
+            "numero_venta": venta.ID_Venta,
+            "fecha": venta.FechaVenta.isoformat(),
+            "hora": _formatear_hora(recibo.FechaEmision if recibo else None),
+            "cliente": _nombre_cliente(cliente_venta),
+            "metodo_pago": metodo,
+            "total": _a_float(venta.Total),
+            "estado": recibo.Estado if recibo else "Sin recibo",
+            "id_recibo": recibo.ID_Recibo if recibo else None,
+        })
+
+    total_vendido = sum(venta["total"] for venta in ventas_filtradas)
+
+    return {
+        "resumen": {
+            "ventas_hoy": total_vendido,
+            "transacciones": len(ventas_filtradas),
+        },
+        "ventas": ventas_filtradas,
+        "metodos_pago": [
+            {"metodo": "Efectivo", "total": totales_metodos["Efectivo"]},
+            {"metodo": "Transferencia", "total": totales_metodos["Transferencia"]},
+            {"metodo": "Mixto", "total": totales_metodos["Mixto"]},
+        ],
+    }
 
 
 @router.get("/recibos")

@@ -78,6 +78,10 @@ function RecibosColaborador() {
     }
   };
 
+  const imprimirRecibo = () => {
+    window.print();
+  };
+
   return (
     <section className="recibos-page">
       <div className="recibos-header">
@@ -200,6 +204,11 @@ function RecibosColaborador() {
 
               <div className="recibo-completo-info">
                 <div>
+                  <span>No. venta</span>
+                  <strong>{reciboSeleccionado.numero_venta}</strong>
+                </div>
+
+                <div>
                   <span>Cliente</span>
                   <strong>{reciboSeleccionado.cliente}</strong>
                 </div>
@@ -276,6 +285,14 @@ function RecibosColaborador() {
                 onClick={() => exportarPdf(reciboSeleccionado.ID_Recibo)}
               >
                 Exportar PDF
+              </button>
+
+              <button
+                type="button"
+                className="btn-modal-principal"
+                onClick={imprimirRecibo}
+              >
+                Imprimir
               </button>
             </div>
           </div>

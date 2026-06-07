@@ -5,15 +5,22 @@ import {
   obtenerMunicipiosPorDepartamento,
   obtenerProductos,
   obtenerTiposPago,
+  descargarPdfRecibo,
+  obtenerDetalleRecibo,
   registrarVentaCompleta,
 } from "../../../api/api";
+import "../Recibos/Recibos.css";
 import "./NuevaVenta.css";
 
 const ID_EMPLEADO_TEMPORAL = 1;
+const MENSAJE_VENTA_REALIZADA = "Venta realizada";
 
 function NuevaVenta({
   idEmpleado = ID_EMPLEADO_TEMPORAL,
   registrarVenta = registrarVentaCompleta,
+  obtenerDetalleReciboVenta = obtenerDetalleRecibo,
+  descargarPdfReciboVenta = descargarPdfRecibo,
+  obtenerProductosVenta = obtenerProductos,
 }) {
   const obtenerFechaActual = () => {
     const hoy = new Date();
@@ -55,14 +62,23 @@ function NuevaVenta({
   const [mensaje, setMensaje] = useState("");
   const [tipoMensaje, setTipoMensaje] = useState("info");
   const [erroresValidacion, setErroresValidacion] = useState([]);
+  const [ventaIntentada, setVentaIntentada] = useState(false);
+  const [ultimaVentaExitosa, setUltimaVentaExitosa] = useState(null);
+  const [reciboVenta, setReciboVenta] = useState(null);
+  const [mostrarModalRecibo, setMostrarModalRecibo] = useState(false);
 
   const mostrarMensaje = (texto, tipo = "info") => {
     setMensaje(texto);
     setTipoMensaje(tipo);
   };
 
-  const mensajeTelefonoDelivery =
-    "El teléfono debe contener solo numeros de 8 digitos";
+  const limpiarMensajeVentaRealizada = () => {
+    if (tipoMensaje === "success" && mensaje === MENSAJE_VENTA_REALIZADA) {
+      setMensaje("");
+    }
+  };
+
+  const mensajeTelefonoDelivery = "Ingrese un número válido";
 
   const formatearDinero = (valor) => {
     return `C$ ${Number(valor).toLocaleString("es-NI", {
@@ -110,7 +126,7 @@ function NuevaVenta({
     try {
       const [productosRespuesta, tiposPagoRespuesta, departamentosRespuesta] =
         await Promise.all([
-          obtenerProductos(),
+          obtenerProductosVenta(),
           obtenerTiposPago(),
           obtenerDepartamentos(),
         ]);
@@ -132,6 +148,18 @@ function NuevaVenta({
   useEffect(() => {
     cargarDatosIniciales();
   }, []);
+
+  useEffect(() => {
+    if (tipoMensaje !== "success" || mensaje !== MENSAJE_VENTA_REALIZADA) {
+      return undefined;
+    }
+
+    const temporizador = setTimeout(() => {
+      setMensaje("");
+    }, 5000);
+
+    return () => clearTimeout(temporizador);
+  }, [mensaje, tipoMensaje]);
 
   useEffect(() => {
     const cargarMunicipios = async () => {
@@ -217,6 +245,7 @@ function NuevaVenta({
     const valor = e.target.value;
 
     if (/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]*$/.test(valor)) {
+      limpiarMensajeVentaRealizada();
       setClienteSeleccionado(null);
       setter(valor);
     }
@@ -233,6 +262,7 @@ function NuevaVenta({
   };
 
   const manejarTelefonoCliente = (e) => {
+    limpiarMensajeVentaRealizada();
     setTelefonoCliente(limpiarTelefono(e.target.value));
     setClienteSeleccionado(null);
     setErroresValidacion([]);
@@ -364,13 +394,20 @@ function NuevaVenta({
     return String(producto.Estado || "").trim().toUpperCase() === "ACTIVO";
   };
 
-  const productosFiltrados = productos.filter((producto) => {
+  const productosCoincidentesBusqueda = productos.filter((producto) => {
     const coincideNombre = producto.Nombre.toLowerCase().includes(
       busqueda.toLowerCase()
     );
 
-    return coincideNombre && productoActivo(producto) && obtenerStockDisponible(producto) > 0;
+    return coincideNombre && productoActivo(producto);
   });
+
+  const productosFiltrados = productosCoincidentesBusqueda.filter(
+    (producto) => obtenerStockDisponible(producto) > 0
+  );
+
+  const hayProductosSinStockDisponible =
+    productosCoincidentesBusqueda.length > 0 && productosFiltrados.length === 0;
 
   const obtenerPrecioProducto = (producto) => {
     return Number(producto.PrecioUnitario) || 0;
@@ -396,7 +433,7 @@ function NuevaVenta({
     const stockDisponible = obtenerStockDisponible(producto);
 
     if (stockDisponible <= 0) {
-      mostrarMensaje("Este producto no tiene stock disponible.", "error");
+      mostrarMensaje("Stock ya agregado completo.", "error");
       return;
     }
 
@@ -406,10 +443,7 @@ function NuevaVenta({
 
     if (productoExistente) {
       if (stockDisponible <= 0) {
-        mostrarMensaje(
-          "No puedes agregar más unidades que el stock disponible.",
-          "error"
-        );
+        mostrarMensaje("Stock ya agregado completo.", "error");
         return;
       }
 
@@ -444,7 +478,7 @@ function NuevaVenta({
       productosVenta.map((item) => {
         if (item.ID_Producto === idProducto) {
           if (item.Cantidad >= item.Stock) {
-            mostrarMensaje("No puedes superar el stock disponible.", "error");
+            mostrarMensaje("Stock ya agregado completo.", "error");
             return item;
           }
 
@@ -487,7 +521,7 @@ function NuevaVenta({
     setMensaje("");
   };
 
-  const vaciarVenta = () => {
+  const limpiarCamposNuevaVenta = () => {
     setTipoCliente("generico");
     setNombresCliente("");
     setApellidosCliente("");
@@ -509,7 +543,16 @@ function NuevaVenta({
     setBusqueda("");
     setProductosVenta([]);
     setNotas("");
+    setErroresValidacion([]);
+    setVentaIntentada(false);
+    setReciboVenta(null);
+    setMostrarModalRecibo(false);
+  };
+
+  const vaciarVenta = () => {
+    limpiarCamposNuevaVenta();
     setMensaje("");
+    setUltimaVentaExitosa(null);
   };
 
   const totalProductos = useMemo(() => {
@@ -743,6 +786,29 @@ function NuevaVenta({
     return [...new Set(errores)];
   };
 
+  useEffect(() => {
+    if (!ventaIntentada) return;
+
+    setErroresValidacion(validarVenta());
+  }, [
+    ventaIntentada,
+    fecha,
+    productosVenta,
+    metodoPago,
+    montoEfectivo,
+    montoTransferencia,
+    referenciaPago,
+    tipoCliente,
+    nombresCliente,
+    apellidosCliente,
+    telefonoCliente,
+    direccionCliente,
+    departamentoCliente,
+    municipioCliente,
+    costoDelivery,
+    total,
+  ]);
+
   const construirPayload = () => {
     // Si el cliente sugerido ya sirve para la venta, se envia su ID para evitar duplicados.
     const payload = {
@@ -794,6 +860,7 @@ function NuevaVenta({
   const finalizarVenta = async () => {
     setMensaje("");
     setErroresValidacion([]);
+    setVentaIntentada(true);
 
     const errores = validarVenta();
 
@@ -807,19 +874,18 @@ function NuevaVenta({
 
     try {
       const respuesta = await registrarVenta(construirPayload());
+      const ventaExitosa = {
+        idVenta: respuesta.ID_Venta,
+        idRecibo: respuesta.ID_Recibo,
+        reciboGenerado: Boolean(respuesta.ReciboGenerado),
+        total: respuesta.TotalVenta,
+      };
 
-      setProductosVenta([]);
-      setBusqueda("");
-      setReferenciaPago("");
-      setNotas("");
+      limpiarCamposNuevaVenta();
+      setUltimaVentaExitosa(ventaExitosa);
       await cargarDatosIniciales();
 
-      mostrarMensaje(
-        `${respuesta.mensaje} Venta #${respuesta.ID_Venta}. Total: ${formatearDinero(
-          respuesta.TotalVenta
-        )}. Recibo generado: ${respuesta.ReciboGenerado ? "sí" : "no"}.`,
-        "success"
-      );
+      mostrarMensaje(MENSAJE_VENTA_REALIZADA, "success");
     } catch (error) {
       mostrarMensaje(
         error.message ||
@@ -828,6 +894,35 @@ function NuevaVenta({
       );
     } finally {
       setRegistrandoVenta(false);
+    }
+  };
+
+  const abrirReciboVenta = async ({ imprimir = false } = {}) => {
+    if (!ultimaVentaExitosa?.idRecibo) {
+      mostrarMensaje("No se encontró el recibo de esta venta.", "error");
+      return;
+    }
+
+    try {
+      const detalle = await obtenerDetalleReciboVenta(ultimaVentaExitosa.idRecibo);
+      setReciboVenta(detalle);
+      setMostrarModalRecibo(true);
+
+      if (imprimir) {
+        setTimeout(() => window.print(), 150);
+      }
+    } catch (error) {
+      mostrarMensaje(error.message || "No se pudo cargar el recibo.", "error");
+    }
+  };
+
+  const exportarReciboVenta = async () => {
+    if (!ultimaVentaExitosa?.idRecibo) return;
+
+    try {
+      await descargarPdfReciboVenta(ultimaVentaExitosa.idRecibo);
+    } catch (error) {
+      mostrarMensaje(error.message || "No se pudo descargar el recibo.", "error");
     }
   };
 
@@ -853,7 +948,10 @@ function NuevaVenta({
             type="date"
             value={fecha}
             min={obtenerFechaActual()}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={(e) => {
+              limpiarMensajeVentaRealizada();
+              setFecha(e.target.value);
+            }}
           />
         </div>
 
@@ -958,7 +1056,10 @@ function NuevaVenta({
               type="text"
               placeholder="Dirección exacta"
               value={direccionCliente}
-              onChange={(e) => setDireccionCliente(e.target.value)}
+              onChange={(e) => {
+                limpiarMensajeVentaRealizada();
+                setDireccionCliente(e.target.value);
+              }}
             />
           </div>
 
@@ -984,7 +1085,10 @@ function NuevaVenta({
             <label>Municipio</label>
             <select
               value={municipioCliente}
-              onChange={(e) => setMunicipioCliente(e.target.value)}
+              onChange={(e) => {
+                limpiarMensajeVentaRealizada();
+                setMunicipioCliente(e.target.value);
+              }}
               disabled={!departamentoCliente || cargandoMunicipios}
             >
               <option value="">
@@ -1016,7 +1120,10 @@ function NuevaVenta({
               min="0"
               placeholder="0.00"
               value={costoDelivery}
-              onChange={(e) => setCostoDelivery(e.target.value)}
+              onChange={(e) => {
+                limpiarMensajeVentaRealizada();
+                setCostoDelivery(e.target.value);
+              }}
             />
           </div>
         </div>
@@ -1033,7 +1140,10 @@ function NuevaVenta({
               type="text"
               placeholder="Buscar producto por nombre"
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              onChange={(e) => {
+                limpiarMensajeVentaRealizada();
+                setBusqueda(e.target.value);
+              }}
             />
             <button type="button" onClick={cargarDatosIniciales}>
               Actualizar
@@ -1084,7 +1194,9 @@ function NuevaVenta({
                 {!cargandoDatos && productosFiltrados.length === 0 && (
                   <tr>
                     <td colSpan="5" className="sin-datos">
-                      No se encontraron productos.
+                      {hayProductosSinStockDisponible
+                        ? "Stock ya agregado completo o sin stock disponible."
+                        : "No se encontraron productos."}
                     </td>
                   </tr>
                 )}
@@ -1281,7 +1393,10 @@ function NuevaVenta({
                         type="text"
                         placeholder="Referencia opcional"
                         value={referenciaPago}
-                        onChange={(e) => setReferenciaPago(e.target.value)}
+                        onChange={(e) => {
+                          limpiarMensajeVentaRealizada();
+                          setReferenciaPago(e.target.value);
+                        }}
                       />
                     </div>
                   )}
@@ -1293,7 +1408,10 @@ function NuevaVenta({
                 <textarea
                   placeholder="Agrega una nota a la venta..."
                   value={notas}
-                  onChange={(e) => setNotas(e.target.value)}
+                  onChange={(e) => {
+                    limpiarMensajeVentaRealizada();
+                    setNotas(e.target.value);
+                  }}
                 ></textarea>
               </div>
 
@@ -1301,6 +1419,45 @@ function NuevaVenta({
                 <p className={`mensaje-venta mensaje-${tipoMensaje}`}>
                   {mensaje}
                 </p>
+              )}
+
+              {ultimaVentaExitosa && (
+                <div className="venta-exitosa-acciones">
+                  <div>
+                    <span>No. venta</span>
+                    <strong>{ultimaVentaExitosa.idVenta}</strong>
+                  </div>
+
+                  <div>
+                    <span>Recibo generado</span>
+                    <strong>{ultimaVentaExitosa.reciboGenerado ? "Sí" : "No"}</strong>
+                  </div>
+
+                  {ultimaVentaExitosa.reciboGenerado && (
+                    <div className="venta-exitosa-botones">
+                      <button
+                        type="button"
+                        onClick={() => abrirReciboVenta()}
+                      >
+                        Ver recibo
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => abrirReciboVenta({ imprimir: true })}
+                      >
+                        Imprimir recibo
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={exportarReciboVenta}
+                      >
+                        Exportar PDF
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {erroresValidacion.length > 0 && (
@@ -1341,6 +1498,118 @@ function NuevaVenta({
           </article>
         </div>
       </div>
+
+      {mostrarModalRecibo && reciboVenta && (
+        <div className="modal-recibo-fondo">
+          <div className="modal-recibo">
+            <div className="modal-recibo-header">
+              <h2>Recibo generado</h2>
+              <button type="button" onClick={() => setMostrarModalRecibo(false)}>
+                ×
+              </button>
+            </div>
+
+            <div className="recibo-completo">
+              <div className="recibo-completo-encabezado">
+                <div>
+                  <h2>H&D Boutique</h2>
+                  <p>Recibo de venta</p>
+                </div>
+
+                <div className="recibo-numero">
+                  <span>No. recibo</span>
+                  <strong>{reciboVenta.numero_recibo}</strong>
+                </div>
+              </div>
+
+              <div className="recibo-completo-info">
+                <div>
+                  <span>No. venta</span>
+                  <strong>{reciboVenta.numero_venta}</strong>
+                </div>
+
+                <div>
+                  <span>Cliente</span>
+                  <strong>{reciboVenta.cliente}</strong>
+                </div>
+
+                <div>
+                  <span>Fecha</span>
+                  <strong>{reciboVenta.fecha}</strong>
+                </div>
+
+                <div>
+                  <span>Método de pago</span>
+                  <strong>{reciboVenta.medio_pago}</strong>
+                </div>
+              </div>
+
+              <div className="recibo-productos">
+                <h3>Productos comprados</h3>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Talla</th>
+                      <th>Cantidad</th>
+                      <th>Precio</th>
+                      <th>Subtotal</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {reciboVenta.productos.map((producto) => (
+                      <tr key={`${producto.producto}-${producto.subtotal}`}>
+                        <td>{producto.producto}</td>
+                        <td>{producto.talla || "Sin talla"}</td>
+                        <td>{producto.cantidad}</td>
+                        <td>{formatearDinero(producto.precio)}</td>
+                        <td>{formatearDinero(producto.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="recibo-completo-totales">
+                <div>
+                  <span>Total productos</span>
+                  <strong>{formatearDinero(reciboVenta.total_productos)}</strong>
+                </div>
+
+                <div>
+                  <span>Delivery</span>
+                  <strong>{formatearDinero(reciboVenta.delivery || 0)}</strong>
+                </div>
+
+                <div className="recibo-total-final">
+                  <span>Total</span>
+                  <strong>{formatearDinero(reciboVenta.total)}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-recibo-acciones">
+              <button
+                type="button"
+                className="btn-modal-secundario"
+                onClick={() => setMostrarModalRecibo(false)}
+              >
+                Cerrar
+              </button>
+
+              <button
+                type="button"
+                className="btn-modal-principal"
+                onClick={() => window.print()}
+              >
+                Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

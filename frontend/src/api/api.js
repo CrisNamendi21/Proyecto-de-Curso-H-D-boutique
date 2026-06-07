@@ -507,6 +507,26 @@ export function registrarVentaColaborador(datos) {
   return enviarDatos("/colaborador/ventas/registrar-completa", datos);
 }
 
+export function obtenerVentasDiaColaborador(filtros = {}) {
+  const params = new URLSearchParams();
+
+  if (filtros.fecha) {
+    params.append("fecha", filtros.fecha);
+  }
+
+  if (filtros.cliente) {
+    params.append("cliente", filtros.cliente);
+  }
+
+  if (filtros.metodoPago && filtros.metodoPago !== "Todos") {
+    params.append("metodo_pago", filtros.metodoPago);
+  }
+
+  const query = params.toString();
+
+  return obtenerDatos(`/colaborador/ventas/resumen-dia${query ? `?${query}` : ""}`);
+}
+
 export function obtenerRecibosColaborador(filtros = {}) {
   const params = new URLSearchParams();
 

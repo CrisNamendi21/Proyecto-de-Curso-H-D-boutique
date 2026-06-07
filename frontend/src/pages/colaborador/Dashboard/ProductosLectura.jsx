@@ -7,7 +7,6 @@ import "../../duena/Productos/Productos.css";
 
 const resumenInicial = {
   total_productos: 0,
-  valor_inventario: 0,
   productos_bajos_stock: 0,
   productos_sin_stock: 0,
 };
@@ -24,13 +23,6 @@ function ProductosLectura() {
     estado: "Todos los estados",
   });
   const [filtrosAplicados, setFiltrosAplicados] = useState(filtros);
-
-  const formatearDinero = (valor) => {
-    return `C$ ${Number(valor || 0).toLocaleString("es-NI", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
 
   const obtenerEstadoProducto = (producto) => {
     if (producto.Estado === "INACTIVO") return "Inactivo";
@@ -63,11 +55,6 @@ function ProductosLectura() {
       setProductos(productosRespuesta || []);
       setResumen({
         total_productos: (productosRespuesta || []).length,
-        valor_inventario: (productosRespuesta || []).reduce(
-          (total, producto) =>
-            total + Number(producto.PrecioDeCompra || 0) * Number(producto.Stock || 0),
-          0
-        ),
         productos_bajos_stock: (productosRespuesta || []).filter(
           (producto) => Number(producto.Stock) > 0 && Number(producto.Stock) <= 5
         ).length,
@@ -152,12 +139,6 @@ function ProductosLectura() {
           <span>Total de productos</span>
           <h3>{resumen.total_productos}</h3>
           <p>Productos registrados</p>
-        </article>
-
-        <article className="resumen-card">
-          <span>Valor del inventario</span>
-          <h3>{formatearDinero(resumen.valor_inventario)}</h3>
-          <p>Valor al costo</p>
         </article>
 
         <article className="resumen-card">
@@ -259,7 +240,12 @@ function ProductosLectura() {
                     <td>{producto.Categoria || "Sin categoria"}</td>
                     <td>{producto.Talla || "Sin talla"}</td>
                     <td>{producto.Proveedor || "Sin proveedor"}</td>
-                    <td>{formatearDinero(producto.PrecioUnitario)}</td>
+                    <td>
+                      {`C$ ${Number(producto.PrecioUnitario || 0).toLocaleString("es-NI", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`}
+                    </td>
                     <td>{producto.Stock}</td>
                     <td>
                       <span

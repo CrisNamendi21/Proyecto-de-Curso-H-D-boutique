@@ -110,6 +110,22 @@
   margin: 0;
 }
 
+.colaborador-theme .colaborador-acceso {
+  margin-top: 16px;
+  border: 1px solid var(--colab-borde);
+  border-radius: 12px;
+  background: var(--colab-lila);
+  color: var(--colab-texto);
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.colaborador-theme .colaborador-acceso:hover {
+  background: var(--colab-morado);
+}
+
 .colaborador-theme .colaborador-badge {
   display: inline-flex;
   align-items: center;
@@ -173,6 +189,7 @@
 .colaborador-theme .productos-header h2,
 .colaborador-theme .clientes-titulo h2,
 .colaborador-theme .nueva-venta-header h1,
+.colaborador-theme .ventas-header h1,
 .colaborador-theme .productos-tabla-card h3,
 .colaborador-theme .clientes-tabla-card h3,
 .colaborador-theme .clientes-recientes-card h3,
@@ -184,12 +201,20 @@
 .colaborador-theme .cliente-stat-card,
 .colaborador-theme .productos-filtros,
 .colaborador-theme .clientes-filtros,
+.colaborador-theme .ventas-filtros,
 .colaborador-theme .productos-tabla-card,
 .colaborador-theme .clientes-tabla-card,
 .colaborador-theme .clientes-recientes-card,
+.colaborador-theme .panel-ventas,
+.colaborador-theme .venta-card,
 .colaborador-theme .panel-venta {
   border-color: var(--colab-borde);
   box-shadow: 0 10px 24px rgba(76, 48, 115, 0.07);
+}
+
+.colaborador-theme .colaborador-listado-ventas {
+  height: calc(100vh - 300px);
+  min-height: 360px;
 }
 
 .colaborador-theme button:not(.menu-item):not(.logout-btn) {

@@ -147,6 +147,10 @@ function Recibos() {
     }
   };
 
+  const imprimirRecibo = () => {
+    window.print();
+  };
+
   return (
     <section className="recibos-page">
       <div className="recibos-header">
@@ -497,6 +501,14 @@ function Recibos() {
                 onClick={() => exportarPdf(reciboSeleccionado.ID_Recibo)}
               >
                 Exportar PDF
+              </button>
+
+              <button
+                type="button"
+                className="btn-modal-principal"
+                onClick={imprimirRecibo}
+              >
+                Imprimir
               </button>
             </div>
           </div>

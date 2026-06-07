@@ -18,6 +18,7 @@ class ProductoReciboResponse(BaseModel):
 class ReciboListadoResponse(BaseModel):
     ID_Recibo: int
     numero_recibo: str
+    numero_venta: str
     fecha: str
     cliente: str
     vendedor: str

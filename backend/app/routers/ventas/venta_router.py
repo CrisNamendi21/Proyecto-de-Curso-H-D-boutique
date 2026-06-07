@@ -160,7 +160,7 @@ def _crear_cliente_desde_venta(venta_data: VentaCompletaCreate, db: Session):
         if not _telefono_delivery_valido(datos_cliente.NumeroTelefono):
             raise HTTPException(
                 status_code=400,
-                detail="El telefono debe tener 8 digitos y estar entre 70000001 y 89999999."
+                detail="Ingrese un número válido"
             )
 
         if not _texto_presente(datos_cliente.Direccion):
@@ -573,7 +573,7 @@ def registrar_venta_completa(
             if not _telefono_delivery_valido(cliente.NumeroTelefono):
                 raise HTTPException(
                     status_code=400,
-                    detail="El telefono debe tener 8 digitos y estar entre 70000001 y 89999999."
+                    detail="Ingrese un número válido"
                 )
 
             direccion_cliente = db.query(DireccionCliente).filter(
@@ -748,6 +748,7 @@ def registrar_venta_completa(
         )
 
         db.add(nuevo_recibo)
+        db.flush()
 
         db.commit()
         db.refresh(nueva_venta)
@@ -761,7 +762,8 @@ def registrar_venta_completa(
             "TotalProductos": total_productos,
             "TotalVenta": nueva_venta.Total,
             "TotalPagado": total_pagado,
-            "ReciboGenerado": True
+            "ReciboGenerado": True,
+            "ID_Recibo": nuevo_recibo.ID_Recibo
         }
 
     except HTTPException:
