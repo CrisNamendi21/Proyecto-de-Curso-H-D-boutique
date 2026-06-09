@@ -7,7 +7,7 @@ class ProductoBase(BaseModel):
     ID_Categoria: int
     ID_Talla: int
     Nombre: str
-    Stock: int
+    Stock: int = 0
     Estado: str
     Descripcion: Optional[str] = None
 

@@ -34,7 +34,6 @@ function Productos() {
     descripcion: "",
     precioVenta: "",
     costo: "",
-    stock: "",
   });
 
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -235,10 +234,6 @@ function Productos() {
       errores.push("El costo debe ser mayor que cero.");
     }
 
-    if (nuevoProducto.stock === "" || Number(nuevoProducto.stock) < 0) {
-      errores.push("El stock no puede quedar vacío ni ser negativo.");
-    }
-
     return errores;
   };
 
@@ -259,7 +254,6 @@ function Productos() {
       ID_Categoria: Number(nuevoProducto.idCategoria),
       ID_Talla: Number(nuevoProducto.idTalla),
       Nombre: nuevoProducto.nombre.trim(),
-      Stock: Number(nuevoProducto.stock),
       Estado: "ACTIVO",
       Descripcion: nuevoProducto.descripcion.trim() || null,
       ID_Proveedor: Number(nuevoProducto.idProveedor),
@@ -620,16 +614,9 @@ function Productos() {
                   />
                 </div>
 
-                <div className="form-campo">
-                  <label>Stock</label>
-                  <input
-                    type="number"
-                    name="stock"
-                    placeholder="Ej: 10"
-                    value={nuevoProducto.stock}
-                    onChange={manejarCambio}
-                    min="0"
-                  />
+                <div className="aviso-stock-inicial">
+                  El stock inicial se registra en 0. Las existencias se agregan
+                  desde Compras y se descuentan con ventas o pérdidas.
                 </div>
 
                 <div className="form-campo descripcion">

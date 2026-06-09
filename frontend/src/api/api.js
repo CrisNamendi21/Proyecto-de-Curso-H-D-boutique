@@ -335,6 +335,42 @@ export function marcarCompraRecibida(idCompra) {
   return actualizarDatos(`/compras/${idCompra}/recibir`, {});
 }
 
+export function obtenerResumenPerdidas() {
+  return obtenerDatos("/perdidas/resumen");
+}
+
+export function obtenerPerdidas(filtros = {}) {
+  const params = new URLSearchParams();
+
+  if (filtros.fecha) {
+    params.append("fecha", filtros.fecha);
+  }
+
+  if (filtros.producto) {
+    params.append("producto", filtros.producto);
+  }
+
+  if (filtros.proveedor) {
+    params.append("proveedor", filtros.proveedor);
+  }
+
+  if (filtros.motivo) {
+    params.append("motivo", filtros.motivo);
+  }
+
+  const query = params.toString();
+
+  return obtenerDatos(`/perdidas/${query ? `?${query}` : ""}`);
+}
+
+export function obtenerDetallePerdida(idPerdida) {
+  return obtenerDatos(`/perdidas/${idPerdida}`);
+}
+
+export function registrarPerdida(datos) {
+  return enviarDatos("/perdidas/", datos);
+}
+
 export function obtenerTiposPago() {
   return obtenerDatos("/tipos-pago/");
 }

@@ -75,6 +75,7 @@ def _compra_a_listado(compra: Compra, proveedor: Proveedor, db: Session):
 
     return {
         "ID_Compra": compra.ID_Compra,
+        "ID_Proveedor": compra.ID_Proveedor,
         "fecha": compra.FechaCompra.isoformat(),
         "proveedor": proveedor.NombreEmpresa,
         "producto_principal": producto_principal,

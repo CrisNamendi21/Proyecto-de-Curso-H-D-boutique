@@ -488,6 +488,17 @@
   cursor: not-allowed;
 }
 
+.aviso-stock-inicial {
+  border: 1px solid #f3cbd9;
+  background: #fff7fb;
+  border-radius: 10px;
+  color: #5d4a55;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 12px;
+}
+
 /*filtro*/
 .sin-resultados {
   text-align: center;

@@ -45,6 +45,7 @@ class CompraResumenResponse(BaseModel):
 
 class CompraListadoResponse(BaseModel):
     ID_Compra: int
+    ID_Proveedor: int
     fecha: str
     proveedor: str
     producto_principal: str

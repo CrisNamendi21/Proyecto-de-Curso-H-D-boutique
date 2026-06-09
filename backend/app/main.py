@@ -32,6 +32,7 @@ from app.routers.devoluciones.devolucion_router import router as devolucion_rout
 from app.routers.devoluciones.detalle_devolucion_router import router as detalle_devolucion_router
 from app.routers.dashboard.dashboard_router import router as dashboard_router
 from app.routers.colaborador.colaborador_router import router as colaborador_router
+from app.routers.perdidas.perdida_router import router as perdida_router
 
 
 app = FastAPI(
@@ -83,6 +84,7 @@ app.include_router(devolucion_router)
 app.include_router(detalle_devolucion_router)
 app.include_router(dashboard_router)
 app.include_router(colaborador_router)
+app.include_router(perdida_router)
 
 @app.get("/")
 def inicio():

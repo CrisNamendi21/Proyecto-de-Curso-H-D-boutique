@@ -147,7 +147,10 @@ def crear_producto(producto: ProductoCreate, db: Session = Depends(get_db)):
     if not talla:
         raise HTTPException(status_code=404, detail="Talla no encontrada")
 
-    nuevo_producto = Producto(**producto.model_dump())
+    datos_producto = producto.model_dump()
+    # El alta de producto registra catalogo; el stock real entra por Compras.
+    datos_producto["Stock"] = 0
+    nuevo_producto = Producto(**datos_producto)
 
     db.add(nuevo_producto)
     db.commit()
@@ -160,9 +163,6 @@ def crear_producto(producto: ProductoCreate, db: Session = Depends(get_db)):
 def crear_producto_completo(producto: ProductoCompletoCreate, db: Session = Depends(get_db)):
     if not producto.Nombre or not producto.Nombre.strip():
         raise HTTPException(status_code=400, detail="El nombre del producto es obligatorio.")
-
-    if producto.Stock < 0:
-        raise HTTPException(status_code=400, detail="El stock no puede ser negativo.")
 
     if producto.PrecioDeCompra <= 0:
         raise HTTPException(status_code=400, detail="El costo debe ser mayor que cero.")
@@ -191,15 +191,12 @@ def crear_producto_completo(producto: ProductoCompletoCreate, db: Session = Depe
     try:
         estado = _normalizar_estado_producto(producto.Estado)
 
-        # Un producto sin unidades queda inactivo para que no aparezca como vendible.
-        if producto.Stock == 0:
-            estado = "INACTIVO"
-
         nuevo_producto = Producto(
             ID_Categoria=producto.ID_Categoria,
             ID_Talla=producto.ID_Talla,
             Nombre=producto.Nombre.strip(),
-            Stock=producto.Stock,
+            # El stock inicial siempre es cero; Compras es la unica entrada real de inventario.
+            Stock=0,
             Estado=estado,
             Descripcion=producto.Descripcion,
         )

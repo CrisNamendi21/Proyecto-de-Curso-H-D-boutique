@@ -12,6 +12,7 @@ import Proveedores from "../Proveedores/Proveedores";
 import Clientes from "../Clientes/Clientes";
 import Empleados from "../Empleados/Empleados";
 import Compras from "../Compras/Compras";
+import Perdidas from "../Perdidas/Perdidas";
 //parte de cris en el frontend//
 import NuevaVenta from "../NuevaVenta/NuevaVenta";
 import Ventas from "../Ventas/Ventas";
@@ -276,6 +277,15 @@ function DashboardDuena({ setRol }) {
               onClick={() => setVistaActual("compras")}
             >
               Compras
+            </button>
+
+            <button
+              className={
+                vistaActual === "perdidas" ? "menu-item active" : "menu-item"
+              }
+              onClick={() => setVistaActual("perdidas")}
+            >
+              Pérdidas
             </button>
 
             <button
@@ -639,6 +649,12 @@ function DashboardDuena({ setRol }) {
             {vistaActual === "compras" && (
               <div className="vista-modulo">
                 <Compras />
+              </div>
+            )}
+
+            {vistaActual === "perdidas" && (
+              <div className="vista-modulo">
+                <Perdidas />
               </div>
             )}
 
